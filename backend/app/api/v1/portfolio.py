@@ -26,7 +26,6 @@ from app.schemas.portfolio import (
     InventoryPatch,
     PortfolioSummary,
     RarityRatio,
-    SpikeItem,
 )
 
 logger = logging.getLogger("ptcg.portfolio")
@@ -83,71 +82,6 @@ async def portfolio_summary(
             )
         ).mappings().all()
 
-        # 3) 24h 變動 + 近 7 日淨值 sparkline（以 price_history 為準）
-        spark_rows = (
-            await session.execute(
-                text(
-                    """
-                    WITH days AS (
-                        SELECT generate_series(
-                            CURRENT_DATE - INTERVAL '6 days',
-                            CURRENT_DATE, INTERVAL '1 day')::date AS d
-                    )
-                    SELECT days.d AS day,
-                        COALESCE(SUM(
-                            ui.quantity * COALESCE(ph.price, c.current_price)
-                        ), 0) AS value
-                    FROM days
-                    CROSS JOIN user_inventory ui
-                    JOIN cards c ON c.card_id = ui.card_id
-                    LEFT JOIN LATERAL (
-                        SELECT price FROM price_history p
-                        WHERE p.card_id = ui.card_id
-                          AND p.recorded_date <= days.d
-                        ORDER BY p.recorded_date DESC LIMIT 1
-                    ) ph ON TRUE
-                    WHERE ui.user_id = CAST(:uid AS uuid)
-                    GROUP BY days.d
-                    ORDER BY days.d
-                    """
-                ),
-                {"uid": user_id},
-            )
-        ).mappings().all()
-
-        # 4) 今日波動 > 10% 的持有卡
-        spikes = (
-            await session.execute(
-                text(
-                    """
-                    WITH today AS (
-                        SELECT DISTINCT ON (card_id) card_id, price
-                        FROM price_history
-                        WHERE recorded_date <= CURRENT_DATE
-                        ORDER BY card_id, recorded_date DESC
-                    ), yest AS (
-                        SELECT DISTINCT ON (card_id) card_id, price
-                        FROM price_history
-                        WHERE recorded_date <= CURRENT_DATE - INTERVAL '1 day'
-                        ORDER BY card_id, recorded_date DESC
-                    )
-                    SELECT c.card_id, c.name_zh, c.rarity, t.price,
-                        ROUND(((t.price - y.price) / NULLIF(y.price,0) * 100)::numeric, 2)
-                            AS change_pct
-                    FROM user_inventory ui
-                    JOIN cards c ON c.card_id = ui.card_id
-                    JOIN today t ON t.card_id = ui.card_id
-                    JOIN yest  y ON y.card_id = ui.card_id
-                    WHERE ui.user_id = CAST(:uid AS uuid)
-                      AND ABS((t.price - y.price) / NULLIF(y.price,0)) >= 0.10
-                    GROUP BY c.card_id, c.name_zh, c.rarity, t.price, y.price
-                    ORDER BY ABS((t.price - y.price) / NULLIF(y.price,0)) DESC
-                    LIMIT 12
-                    """
-                ),
-                {"uid": user_id},
-            )
-        ).mappings().all()
     except SQLAlchemyError:
         logger.exception("portfolio summary 失敗 user=%s", user_id)
         raise HTTPException(
@@ -165,32 +99,12 @@ async def portfolio_summary(
         for r in rar_rows
     ]
 
-    sparkline = [Decimal(r["value"]).quantize(Decimal("0.01")) for r in spark_rows]
-    # 24h 變動：sparkline 最後兩點
-    change_24h = 0.0
-    if len(sparkline) >= 2 and sparkline[-2] > 0:
-        change_24h = float(
-            (sparkline[-1] - sparkline[-2]) / sparkline[-2] * 100
-        )
-
     return PortfolioSummary(
         net_worth=Decimal(agg["net_worth"]).quantize(Decimal("0.01")) if agg else Decimal("0.00"),
-        change_24h_pct=round(change_24h, 2),
-        sparkline=sparkline,
         total_cards=total,
         rarity_distribution=rarity_dist,
         avg_liquidity=round(float(agg["avg_liq"]), 3) if agg else 0.0,
         dead_stock_count=int(agg["dead_cnt"]) if agg else 0,
-        recent_spikes=[
-            SpikeItem(
-                card_id=s["card_id"],
-                name_zh=s["name_zh"],
-                rarity=s["rarity"],
-                price=Decimal(s["price"]).quantize(Decimal("0.01")),
-                change_pct=float(s["change_pct"]),
-            )
-            for s in spikes
-        ],
     )
 
 

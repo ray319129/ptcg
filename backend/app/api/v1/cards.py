@@ -11,7 +11,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.db import get_db
 from app.pricing import price_expr
-from app.schemas.portfolio import CardDetail, CardSearchItem, PricePoint
+from app.schemas.portfolio import CardDetail, CardSearchItem
 
 logger = logging.getLogger("ptcg.cards")
 
@@ -103,7 +103,6 @@ async def search_cards(
 async def card_detail(
     card_id: str,
     user_id: str | None = Query(default=None),
-    history_days: int = Query(default=90, ge=1, le=365),
     lang: str | None = Query(default="tw"),
     session: AsyncSession = Depends(get_db),
 ) -> CardDetail:
@@ -125,38 +124,6 @@ async def card_detail(
             raise HTTPException(
                 status_code=status.HTTP_404_NOT_FOUND, detail="找不到卡片"
             )
-
-        stats = (
-            await session.execute(
-                text(
-                    """
-                    SELECT
-                        AVG(price) FILTER (
-                            WHERE recorded_date >= CURRENT_DATE - INTERVAL '7 days'
-                        ) AS avg_7d,
-                        MAX(price) AS hi,
-                        MIN(price) AS lo
-                    FROM price_history WHERE card_id = :cid
-                    """
-                ),
-                {"cid": card_id},
-            )
-        ).mappings().first()
-
-        hist = (
-            await session.execute(
-                text(
-                    """
-                    SELECT recorded_date, price, volume
-                    FROM price_history
-                    WHERE card_id = :cid
-                      AND recorded_date >= CURRENT_DATE - make_interval(days => :days)
-                    ORDER BY recorded_date ASC
-                    """
-                ),
-                {"cid": card_id, "days": history_days},
-            )
-        ).mappings().all()
 
         owned = {"qty": 0, "fav": False, "elig": True}
         if user_id:
@@ -187,9 +154,6 @@ async def card_detail(
             detail="無法載入卡片詳情",
         )
 
-    def _dec(v) -> Decimal | None:
-        return Decimal(v).quantize(Decimal("0.01")) if v is not None else None
-
     return CardDetail(
         card_id=card["card_id"],
         set_code=card["set_code"],
@@ -198,18 +162,7 @@ async def card_detail(
         name_zh=card["name_zh"],
         current_price=Decimal(card["current_price"]).quantize(Decimal("0.01")),
         liquidity_score=float(card["liquidity_score"]),
-        avg_7d=_dec(stats["avg_7d"]) if stats else None,
-        highest_deal=_dec(stats["hi"]) if stats else None,
-        lowest_ask=_dec(stats["lo"]) if stats else None,
         owned_qty=owned["qty"],
         is_favorite=owned["fav"],
         pack_eligible=owned["elig"],
-        price_history=[
-            PricePoint(
-                recorded_date=str(h["recorded_date"]),
-                price=Decimal(h["price"]).quantize(Decimal("0.01")),
-                volume=int(h["volume"]),
-            )
-            for h in hist
-        ],
     )

@@ -3,9 +3,8 @@ import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { getPortfolioSummary, type PortfolioSummary } from "../api/endpoints";
 import { ApiError } from "../api/http";
-import { Sparkline } from "../components/Sparkline";
 import { useApp } from "../store";
-import { money, pct, rarityColor } from "../utils/format";
+import { money, rarityColor } from "../utils/format";
 import "./dashboard.css";
 
 export function DashboardScreen() {
@@ -44,9 +43,6 @@ export function DashboardScreen() {
     );
   if (!data) return null;
 
-  const change = pct(data.change_24h_pct);
-  const spark = data.sparkline.map(Number);
-
   return (
     <div className="screen-pad dashboard">
       {/* Header */}
@@ -66,13 +62,6 @@ export function DashboardScreen() {
       <section className="surface hero">
         <div className="hero-label">總資產淨值</div>
         <div className="hero-net">{money(data.net_worth)}</div>
-        <div className="hero-row">
-          <span className={change.cls}>{change.text}</span>
-          <span className="muted">24h</span>
-          <div className="hero-spark">
-            <Sparkline data={spark} />
-          </div>
-        </div>
       </section>
 
       {/* 快捷操作 */}
@@ -127,33 +116,6 @@ export function DashboardScreen() {
           ))}
         </div>
       </section>
-
-      {/* 今日波動 */}
-      {data.recent_spikes.length > 0 && (
-        <section>
-          <div className="block-title">今日波動 &gt;10%</div>
-          <div className="spike-scroll">
-            {data.recent_spikes.map((s) => {
-              const c = pct(s.change_pct);
-              return (
-                <button
-                  key={s.card_id}
-                  className="surface spike-card"
-                  onClick={() => nav(`/cards/${encodeURIComponent(s.card_id)}`)}
-                >
-                  <span
-                    className="rarity-dot"
-                    style={{ background: rarityColor(s.rarity) }}
-                  />
-                  <span className="spike-name">{s.name_zh}</span>
-                  <span className="mono">{money(s.price)}</span>
-                  <span className={c.cls}>{c.text}</span>
-                </button>
-              );
-            })}
-          </div>
-        </section>
-      )}
     </div>
   );
 }

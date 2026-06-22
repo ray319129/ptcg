@@ -19,13 +19,6 @@ export const inventoryCsvUrl = (userId: string, lang: "tw" | "jp") =>
   );
 
 // ---- Portfolio / Dashboard -------------------------------------------------
-export interface SpikeItem {
-  card_id: string;
-  name_zh: string;
-  rarity: string;
-  price: string;
-  change_pct: number;
-}
 export interface RarityRatio {
   rarity: string;
   count: number;
@@ -33,13 +26,10 @@ export interface RarityRatio {
 }
 export interface PortfolioSummary {
   net_worth: string;
-  change_24h_pct: number;
-  sparkline: string[];
   total_cards: number;
   rarity_distribution: RarityRatio[];
   avg_liquidity: number;
   dead_stock_count: number;
-  recent_spikes: SpikeItem[];
 }
 
 export const getPortfolioSummary = (
@@ -168,11 +158,6 @@ export const clearInventory = (userId: string) =>
   apiPost<BulkResult>("/api/v1/inventory/clear", { user_id: userId });
 
 // ---- Card detail -----------------------------------------------------------
-export interface PricePoint {
-  recorded_date: string;
-  price: string;
-  volume: number;
-}
 export interface CardDetail {
   card_id: string;
   set_code: string;
@@ -181,13 +166,9 @@ export interface CardDetail {
   name_zh: string;
   current_price: string;
   liquidity_score: number;
-  avg_7d: string | null;
-  highest_deal: string | null;
-  lowest_ask: string | null;
   owned_qty: number;
   is_favorite: boolean;
   pack_eligible: boolean;
-  price_history: PricePoint[];
 }
 export const getCardDetail = (
   cardId: string,
