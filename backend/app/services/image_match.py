@@ -95,11 +95,77 @@ def _order_corners(pts: np.ndarray) -> np.ndarray:
     return rect
 
 
+# 卡片定位參數
+_MIN_AREA_FRAC = 0.05    # 卡片矩形至少占畫面 5%（容許卡片不滿版、不置中）
+_MAX_AREA_FRAC = 0.985   # 上限：排除整個畫面外框
+_MIN_FILL = 0.72         # 輪廓面積 / 其外接矩形面積，須近似實心矩形（卡片是實心方塊）
+_RATIO_LO = 0.55         # 短/長邊比下限（標準卡 ≈ 0.714，留誤差含透視傾斜）
+_RATIO_HI = 0.88         # 上限
+
+
+def _candidate_masks(small: np.ndarray) -> list[np.ndarray]:
+    """產生多種前景遮罩來源，提升在低對比（白卡白底）與高反光（holo/金卡）下的命中率。"""
+    masks: list[np.ndarray] = []
+    gray = cv2.cvtColor(small, cv2.COLOR_BGR2GRAY)
+    blur = cv2.GaussianBlur(gray, (5, 5), 0)
+    k3 = np.ones((3, 3), np.uint8)
+    k5 = np.ones((5, 5), np.uint8)
+
+    # 1) Canny 邊緣（膨脹後封閉輪廓）
+    edges = cv2.Canny(blur, 30, 120)
+    masks.append(cv2.dilate(edges, k3, iterations=2))
+
+    # 2) Otsu 二值化（卡與背景亮度差）；兩個方向都試，不假設卡較亮或較暗
+    _, th = cv2.threshold(blur, 0, 255, cv2.THRESH_BINARY + cv2.THRESH_OTSU)
+    masks.append(th)
+    masks.append(cv2.bitwise_not(th))
+
+    # 3) 飽和度（holo / 金卡在中性色背景上特別鮮豔，能補強白底白盒情境）
+    hsv = cv2.cvtColor(small, cv2.COLOR_BGR2HSV)
+    _, sth = cv2.threshold(hsv[:, :, 1], 0, 255, cv2.THRESH_BINARY + cv2.THRESH_OTSU)
+    masks.append(cv2.dilate(sth, k5, iterations=2))
+    return masks
+
+
+def _find_card_quad(small: np.ndarray) -> np.ndarray | None:
+    """在縮圖中找最像卡片的矩形，回傳 4 角座標 (4,2)；找不到回 None。
+
+    對每個遮罩取最大的幾個外輪廓，用 minAreaRect 取得旋轉外接矩形，
+    以「面積占比 / 長寬比 / 填充率」三項濾除盒子邊框、桌面雜訊、L 形陰影，
+    取分數（面積×填充率）最高者。比起「恰好四點凸多邊形」更耐反光與低對比。
+    """
+    img_area = small.shape[0] * small.shape[1]
+    best_score = 0.0
+    best_box: np.ndarray | None = None
+    for mask in _candidate_masks(small):
+        contours, _ = cv2.findContours(
+            mask, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE
+        )
+        for c in sorted(contours, key=cv2.contourArea, reverse=True)[:5]:
+            area = cv2.contourArea(c)
+            if area < _MIN_AREA_FRAC * img_area or area > _MAX_AREA_FRAC * img_area:
+                continue
+            rect = cv2.minAreaRect(c)
+            (rw, rh) = rect[1]
+            if rw < 1 or rh < 1:
+                continue
+            long_, short_ = max(rw, rh), min(rw, rh)
+            if not (_RATIO_LO <= short_ / long_ <= _RATIO_HI):
+                continue
+            fill = area / (rw * rh)
+            if fill < _MIN_FILL:
+                continue
+            score = area * fill
+            if score > best_score:
+                best_score = score
+                best_box = cv2.boxPoints(rect)
+    return best_box
+
+
 def detect_card(data: bytes) -> Image.Image | None:
     """在整張畫面中偵測卡片矩形並透視校正，回傳裁切後的卡片 (PIL)，找不到回 None。
 
-    流程：灰階 → 模糊 → Canny 邊緣 → 膨脹 → 找輪廓 → 取最大且近似四邊形者 →
-    依四角透視校正成正面卡片影像。
+    卡片可在畫面任意位置、不必置中或滿版；偵測不到視為「畫面中沒有卡片」。
     """
     arr = np.frombuffer(data, np.uint8)
     img = cv2.imdecode(arr, cv2.IMREAD_COLOR)
@@ -111,27 +177,7 @@ def detect_card(data: bytes) -> Image.Image | None:
     if scale >= 1:
         scale = 1.0
 
-    gray = cv2.cvtColor(small, cv2.COLOR_BGR2GRAY)
-    gray = cv2.GaussianBlur(gray, (5, 5), 0)
-    edges = cv2.Canny(gray, 40, 130)
-    edges = cv2.dilate(edges, np.ones((3, 3), np.uint8), iterations=2)
-    contours, _ = cv2.findContours(
-        edges, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE
-    )
-    if not contours:
-        return None
-    img_area = small.shape[0] * small.shape[1]
-    quad = None
-    for c in sorted(contours, key=cv2.contourArea, reverse=True)[:8]:
-        peri = cv2.arcLength(c, True)
-        approx = cv2.approxPolyDP(c, 0.02 * peri, True)
-        if (
-            len(approx) == 4
-            and cv2.isContourConvex(approx)
-            and cv2.contourArea(approx) > 0.10 * img_area
-        ):
-            quad = approx.reshape(4, 2).astype(np.float32)
-            break
+    quad = _find_card_quad(small)
     if quad is None:
         return None
 
@@ -164,13 +210,16 @@ def center_crop_card(img: Image.Image) -> Image.Image:
     return img.crop((x, y, x + cw, y + ch))
 
 
-def embed_query(data: bytes) -> tuple[np.ndarray, bool]:
-    """查詢用：先偵測卡片，偵測失敗則中央裁切。回傳 (embedding, 是否偵測到卡片)。"""
+def embed_query(data: bytes) -> tuple[np.ndarray | None, bool]:
+    """查詢用：先偵測畫面中的卡片。
+
+    偵測不到就回 (None, False)，由上層拒絕辨識——「確認畫面中有卡片才比對」，
+    避免空畫面/桌面被硬塞到最近鄰而誤判。偵測到才裁切+校正後 embed。
+    """
     card = detect_card(data)
-    detected = card is not None
     if card is None:
-        card = center_crop_card(Image.open(io.BytesIO(data)))
-    return embed(card), detected
+        return None, False
+    return embed(card), True
 
 
 def load_index() -> tuple[np.ndarray, list[str]]:

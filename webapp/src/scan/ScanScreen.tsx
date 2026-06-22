@@ -130,10 +130,10 @@ export function ScanScreen({ userId, onClose }: Props) {
       abortRef.current = ac;
       try {
         const resp = await matchCard(blob, userId, priceLang, ac.signal);
-        const top = resp.candidates[0];
-        // 有相似結果就顯示（即使信心普通，也讓使用者確認/改選/拒絕）
-        if (top && top.similarity >= 0.5) {
-          const pick = resp.best ?? top;
+        // 只在後端高信心（偵測到卡片且相似度過門檻）才自動跳結果，避免空畫面/反光誤判。
+        // 信心不足或沒偵測到卡 → 不記簽章，下個間隔再試（閃卡每幀反光不同，多試幾次易中）。
+        if (resp.success && resp.best) {
+          const pick = resp.best;
           matchedSigRef.current = sig;
           setResult(resp);
           setSelected(pick);
@@ -142,7 +142,6 @@ export function ScanScreen({ userId, onClose }: Props) {
           triggerReward(pick.rarity);
           setPhase("scanning"); // 畫面不停，但 busyRef 仍鎖住（結果顯示中）
         } else {
-          // 沒命中（可能反光/角度）→ 不記簽章，下個間隔會再試（閃卡每幀反光不同，多試幾次易中）
           busyRef.current = false;
           setPhase("scanning");
         }

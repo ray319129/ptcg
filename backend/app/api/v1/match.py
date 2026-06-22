@@ -124,7 +124,12 @@ async def match_card(
         raise HTTPException(status.HTTP_503_SERVICE_UNAVAILABLE, "資料庫忙碌")
 
     if not candidates:
-        return MatchResponse(success=False, message="找不到相符的卡片")
+        msg = (
+            "找不到相符的卡片"
+            if detected
+            else "未偵測到卡片，請將整張卡片完整放入鏡頭"
+        )
+        return MatchResponse(success=False, detected=detected, message=msg)
 
     top = candidates[0]
     hint = "" if detected else "（未偵測到卡片邊框，請讓整張卡入鏡）"
@@ -141,4 +146,6 @@ async def match_card(
 
 def _embed_and_match(data: bytes) -> tuple[list[tuple[str, float]], bool]:
     q, detected = image_match.embed_query(data)
+    if q is None:  # 畫面中沒偵測到卡片 → 不比對
+        return [], detected
     return image_match.match(q, top_k=5), detected
