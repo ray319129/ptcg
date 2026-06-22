@@ -1,0 +1,518 @@
+[
+ {
+  "code": "M5",
+  "name": "擴充包「深淵之瞳」"
+ },
+ {
+  "code": "M4",
+  "name": "擴充包「忍者飛旋」"
+ },
+ {
+  "code": "MJ",
+  "name": "New Trainer Journey"
+ },
+ {
+  "code": "M3",
+  "name": "擴充包「虛無歸零」"
+ },
+ {
+  "code": "MC",
+  "name": "初階牌組 100對戰收藏"
+ },
+ {
+  "code": "M2a",
+  "name": "高級擴充包「超級進化夢想ex」"
+ },
+ {
+  "code": "M2",
+  "name": "擴充包「烈獄狂火X」"
+ },
+ {
+  "code": "MBG",
+  "name": "挑戰牌組「超級耿鬼ex」"
+ },
+ {
+  "code": "MBD",
+  "name": "挑戰牌組 「超級蒂安希ex」"
+ },
+ {
+  "code": "M1L",
+  "name": "擴充包「超級勇氣」"
+ },
+ {
+  "code": "M1S",
+  "name": "擴充包「超級交響樂」"
+ },
+ {
+  "code": "M-P",
+  "name": "特典卡 超級進化"
+ },
+ {
+  "code": "SVQL",
+  "name": "ex初階牌組 噴火龍"
+ },
+ {
+  "code": "SVQP",
+  "name": "ex初階牌組 皮卡丘"
+ },
+ {
+  "code": "SV11B",
+  "name": "擴充包「漆黑伏特」"
+ },
+ {
+  "code": "SV11W",
+  "name": "擴充包 「純白閃焰」"
+ },
+ {
+  "code": "SV10",
+  "name": "擴充包「火箭隊的榮耀」"
+ },
+ {
+  "code": "SV9a",
+  "name": "強化擴充包「熱風競技場」"
+ },
+ {
+  "code": "SVOD",
+  "name": "挑戰牌組 大吾的鐵啞鈴&amp;巨金怪ex"
+ },
+ {
+  "code": "SVOM",
+  "name": "挑戰牌組 瑪俐的莫魯貝可&amp;長毛巨魔ex"
+ },
+ {
+  "code": "SV9",
+  "name": "擴充包「對戰搭檔」"
+ },
+ {
+  "code": "SVM",
+  "name": "雙ex初階牌組 Generations"
+ },
+ {
+  "code": "SV8a",
+  "name": "高級擴充包「太晶慶典ex」"
+ },
+ {
+  "code": "SV8",
+  "name": "擴充包「超電突圍」"
+ },
+ {
+  "code": "SVK",
+  "name": "牌組構築BOX 樂園騰龍"
+ },
+ {
+  "code": "SVPS",
+  "name": "ex特別組合 太晶屬性：星晶 蒼炎刃鬼ex"
+ },
+ {
+  "code": "SVPN",
+  "name": "ex特別組合 太晶屬性：星晶 仙子伊布ex"
+ },
+ {
+  "code": "SV7a",
+  "name": "強化擴充包「樂園騰龍」"
+ },
+ {
+  "code": "SVI",
+  "name": "Trianers Camp"
+ },
+ {
+  "code": "SV7",
+  "name": "擴充包「星晶奇跡」"
+ },
+ {
+  "code": "SVTH",
+  "name": "戰術牌組「巨鉗螳螂ex」"
+ },
+ {
+  "code": "SVTG",
+  "name": "戰術牌組「太晶烈咬陸鯊ex」"
+ },
+ {
+  "code": "SVTS",
+  "name": "戰術牌組「沙奈朵ex」"
+ },
+ {
+  "code": "SVTR",
+  "name": "戰術牌組「密勒頓ex」"
+ },
+ {
+  "code": "SVTL",
+  "name": "戰術牌組「太晶噴火龍ex」"
+ },
+ {
+  "code": "SVTM",
+  "name": "戰術牌組「魔幻假面喵ex」"
+ },
+ {
+  "code": "SV6a",
+  "name": "強化擴充包「黑夜漫遊者」"
+ },
+ {
+  "code": "SV6",
+  "name": "擴充包「變幻假面」"
+ },
+ {
+  "code": "SV5a",
+  "name": "強化擴充包「緋紅薄霧」"
+ },
+ {
+  "code": "SVHM",
+  "name": "起始組合「未來密勒頓ex」"
+ },
+ {
+  "code": "SVHK",
+  "name": "起始組合「古代故勒頓ex」"
+ },
+ {
+  "code": "SV5M",
+  "name": "擴充包「異度審判」"
+ },
+ {
+  "code": "SV5K",
+  "name": "擴充包「狂野之力」"
+ },
+ {
+  "code": "SV4a",
+  "name": "高級擴充包「閃色寶藏ex」"
+ },
+ {
+  "code": "SV4K",
+  "name": "擴充包「古代咆哮」"
+ },
+ {
+  "code": "SV4M",
+  "name": "擴充包「未來閃光」"
+ },
+ {
+  "code": "SV3a",
+  "name": "強化擴充包「激狂駭浪」"
+ },
+ {
+  "code": "SVEM",
+  "name": "起始組合 太晶 超夢ex"
+ },
+ {
+  "code": "SVEL",
+  "name": "起始組合 太晶 骨紋巨聲鱷ex"
+ },
+ {
+  "code": "SVF",
+  "name": "牌組構築BOX黯焰支配者"
+ },
+ {
+  "code": "SV3",
+  "name": "擴充包「黯焰支配者」"
+ },
+ {
+  "code": "SVD",
+  "name": "ex初階牌組"
+ },
+ {
+  "code": "SV2a",
+  "name": "強化擴充包「寶可夢卡牌151」"
+ },
+ {
+  "code": "SVP1",
+  "name": "ex特別組合"
+ },
+ {
+  "code": "SVC",
+  "name": "起始組合ex 皮卡丘特別組合"
+ },
+ {
+  "code": "SV2P",
+  "name": "擴充包「冰雪險境」"
+ },
+ {
+  "code": "SV2D",
+  "name": "擴充包「碟旋暴擊」"
+ },
+ {
+  "code": "SV1a",
+  "name": "強化擴充包「三連音爆」"
+ },
+ {
+  "code": "SVB",
+  "name": "頂級訓練家收藏箱ex"
+ },
+ {
+  "code": "SVAW",
+  "name": "起始組合ex 潤水鴨&amp;謎擬Ｑ ex"
+ },
+ {
+  "code": "SVAM",
+  "name": "起始組合ex 新葉喵&amp;路卡利歐 ex"
+ },
+ {
+  "code": "SVAL",
+  "name": "起始組合ex 呆火鱷&amp;電龍 ex"
+ },
+ {
+  "code": "SV1V",
+  "name": "擴充包「紫ex」"
+ },
+ {
+  "code": "SV1S",
+  "name": "擴充包「朱ex」"
+ },
+ {
+  "code": "SV-P",
+  "name": "特典卡 朱&amp;紫"
+ },
+ {
+  "code": "SO",
+  "name": "特別牌組組合 「噴火龍VSTAR vs 烈空坐VMAX」"
+ },
+ {
+  "code": "S12a",
+  "name": "高級擴充包「天地萬物VSTAR」"
+ },
+ {
+  "code": "S-P",
+  "name": "特典卡 劍&amp;盾"
+ },
+ {
+  "code": "SDM",
+  "name": "V初階牌組 「超夢」"
+ },
+ {
+  "code": "SDP",
+  "name": "V初階牌組 「皮卡丘」"
+ },
+ {
+  "code": "SDL",
+  "name": "V初階牌組 「噴火龍」"
+ },
+ {
+  "code": "S12",
+  "name": "擴充包「思維激盪」"
+ },
+ {
+  "code": "SN",
+  "name": "初階牌組100 特別版"
+ },
+ {
+  "code": "S11a",
+  "name": "強化擴充包「白熱奧祕」"
+ },
+ {
+  "code": "SP6",
+  "name": "VSTAR特別組合"
+ },
+ {
+  "code": "SPD",
+  "name": "VSTAR&amp;VMAX 高級牌組 代歐奇希斯"
+ },
+ {
+  "code": "SPZ",
+  "name": "VSTAR&amp;VMAX 高級牌組 捷拉奧拉"
+ },
+ {
+  "code": "S11",
+  "name": "擴充包 「迷途深淵」"
+ },
+ {
+  "code": "S10b",
+  "name": "強化擴充包「Pokémon GO」"
+ },
+ {
+  "code": "S10a",
+  "name": "強化擴充包「黑暗亡靈」"
+ },
+ {
+  "code": "S10P",
+  "name": "擴充包「空間魔術師」"
+ },
+ {
+  "code": "S10D",
+  "name": "擴充包「時間觀察者」"
+ },
+ {
+  "code": "SLD",
+  "name": "起始組合VSTAR 達克萊伊"
+ },
+ {
+  "code": "SLL",
+  "name": "起始組合VSTAR 路卡利歐"
+ },
+ {
+  "code": "S9a",
+  "name": "強化擴充包「對戰地區」"
+ },
+ {
+  "code": "SI",
+  "name": "初階牌組100"
+ },
+ {
+  "code": "SK",
+  "name": "頂級訓練家收藏箱 VSTAR"
+ },
+ {
+  "code": "SJ",
+  "name": "特別牌組組合 蒼響・藏瑪然特VS無極汰那"
+ },
+ {
+  "code": "S9",
+  "name": "擴充包「星星誕生」"
+ },
+ {
+  "code": "S8b",
+  "name": "高級擴充包「VMAX絕群壓軸」"
+ },
+ {
+  "code": "S8a",
+  "name": "擴充包「25週年收藏款」"
+ },
+ {
+  "code": "SCD",
+  "name": "V起始牌組 「強大」"
+ },
+ {
+  "code": "S8",
+  "name": "擴充包「匯流藝術」"
+ },
+ {
+  "code": "SP5",
+  "name": "蒼響V-UNION"
+ },
+ {
+  "code": "SP5",
+  "name": "超夢V-UNION"
+ },
+ {
+  "code": "SP5",
+  "name": "甲賀忍蛙V-UNION"
+ },
+ {
+  "code": "SH",
+  "name": "寶可夢卡牌家庭組合"
+ },
+ {
+  "code": "S7R",
+  "name": "擴充包「蒼空烈流」"
+ },
+ {
+  "code": "S7D",
+  "name": "擴充包「摩天巔峰」"
+ },
+ {
+  "code": "SCC",
+  "name": "V起始牌組 「進化」"
+ },
+ {
+  "code": "S6a",
+  "name": "強化擴充包「伊布英雄」"
+ },
+ {
+  "code": "S6H",
+  "name": "擴充包「銀白戰槍」"
+ },
+ {
+  "code": "S6K",
+  "name": "擴充包「漆黑幽魂」"
+ },
+ {
+  "code": "S5a",
+  "name": "強化擴充包「雙璧戰士」"
+ },
+ {
+  "code": "SCB",
+  "name": "V起始牌組 「挑戰」"
+ },
+ {
+  "code": "S5R",
+  "name": "擴充包「連撃大師」"
+ },
+ {
+  "code": "S5I",
+  "name": "擴充包「一撃大師」"
+ },
+ {
+  "code": "SCA",
+  "name": "V起始牌組 「搭檔」"
+ },
+ {
+  "code": "S4a",
+  "name": "高級擴充包「閃色明星V」"
+ },
+ {
+  "code": "S4",
+  "name": "擴充包『驚天伏特攻擊』"
+ },
+ {
+  "code": "SC2D",
+  "name": "V起始牌組「無極力量」"
+ },
+ {
+  "code": "SC2b",
+  "name": "擴充包「無極力量」SET B"
+ },
+ {
+  "code": "SC2a",
+  "name": "擴充包「無極力量」SET A"
+ },
+ {
+  "code": "SC1D",
+  "name": "V起始牌組「劍&amp;盾」"
+ },
+ {
+  "code": "SC1a",
+  "name": "擴充包「劍&amp;盾」SET A"
+ },
+ {
+  "code": "SC1b",
+  "name": "擴充包「劍&amp;盾」SET B"
+ },
+ {
+  "code": "AS6a",
+  "name": "擴充包「傳說交鋒」SET A"
+ },
+ {
+  "code": "AS6b",
+  "name": "擴充包「傳說交鋒」SET B"
+ },
+ {
+  "code": "AS6D",
+  "name": "G超起始牌組「傳說交鋒」"
+ },
+ {
+  "code": "AS5a",
+  "name": "擴充包「雙倍爆擊」SET A"
+ },
+ {
+  "code": "As5b",
+  "name": "擴充包「雙倍爆擊」SET B"
+ },
+ {
+  "code": "AS5D",
+  "name": "G超起始牌組「雙倍爆擊」"
+ },
+ {
+  "code": "AC2a",
+  "name": "擴充包「美夢成真組合篇」SET A"
+ },
+ {
+  "code": "AC2b",
+  "name": "擴充包「美夢成真組合篇」SET B"
+ },
+ {
+  "code": "AC2D",
+  "name": "G超起始牌組「美夢成真組合篇」"
+ },
+ {
+  "code": "AC1a",
+  "name": "擴充包「眾星雲集組合篇」SET A"
+ },
+ {
+  "code": "AC1b",
+  "name": "擴充包「眾星雲集組合篇」SET B"
+ },
+ {
+  "code": "AC1D",
+  "name": "G超起始牌組「眾星雲集組合篇」"
+ },
+ {
+  "code": "SM-P",
+  "name": "特典卡 太陽&amp;月亮"
+ }
+]

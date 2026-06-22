@@ -1,0 +1,19 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "webapp",
+      "runtimeExecutable": "npm",
+      "runtimeArgs": ["--prefix", "webapp", "run", "dev"],
+      "port": 5173,
+      "autoPort": true
+    },
+    {
+      "name": "webapp-prod",
+      "runtimeExecutable": "npm",
+      "runtimeArgs": ["--prefix", "webapp", "run", "preview"],
+      "port": 4173,
+      "autoPort": true
+    }
+  ]
+}

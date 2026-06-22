@@ -1,0 +1,38 @@
+# 相依套件
+node_modules/
+webapp/node_modules/
+
+# 建置產物
+webapp/dist/
+webapp/.vite/
+
+# 大型資源 / 產生的檔（不進版控，由腳本重建/下載）
+webapp/public/img/cards/
+webapp/public/ort/
+webapp/public/models/*.onnx
+webapp/public/models/*.txt
+backend/models/
+backend/ingest/logs/
+
+# 二進位工具
+tools/
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+.venv/
+venv/
+
+# 暫存 / 機密
+*.log
+*.mov
+milong.html
+sform.html
+*.env
+.env
+backend/.env
+
+# OS
+.DS_Store
+Thumbs.db

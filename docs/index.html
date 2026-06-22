@@ -1,0 +1,78 @@
+<!doctype html>
+<html lang="zh-Hant">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>卡匣 — 前往 App</title>
+    <style>
+      body {
+        margin: 0;
+        height: 100vh;
+        display: grid;
+        place-items: center;
+        background: #121214;
+        color: #f5f5f7;
+        font-family: -apple-system, "PingFang TC", "Microsoft JhengHei", sans-serif;
+      }
+      .box {
+        text-align: center;
+        padding: 24px;
+      }
+      .logo {
+        font-size: 32px;
+        font-weight: 800;
+        color: #ffcb05;
+      }
+      a.btn {
+        display: inline-block;
+        margin-top: 18px;
+        background: #ffcb05;
+        color: #121214;
+        text-decoration: none;
+        padding: 14px 28px;
+        border-radius: 999px;
+        font-weight: 700;
+        font-size: 18px;
+      }
+      .sub {
+        color: #9a9aa2;
+        font-size: 13px;
+        margin-top: 14px;
+      }
+      code {
+        color: #34c759;
+        word-break: break-all;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="box">
+      <div class="logo">卡匣</div>
+      <div class="sub">正在前往目前的 App 網址…</div>
+      <div id="link"></div>
+      <div class="sub" id="status">讀取中…</div>
+    </div>
+    <script>
+      // 讀取本目錄的 url.txt（每次啟動由 start-dev.ps1 更新），自動跳轉到當前 tunnel 網址。
+      (async () => {
+        const status = document.getElementById("status");
+        const link = document.getElementById("link");
+        try {
+          const res = await fetch("url.txt?t=" + Date.now(), { cache: "no-store" });
+          const url = (await res.text()).trim();
+          if (url && url.startsWith("http")) {
+            link.innerHTML =
+              '<a class="btn" href="' + url + '">開啟 App</a>' +
+              '<div class="sub"><code>' + url + "</code></div>";
+            status.textContent = "3 秒後自動前往…";
+            setTimeout(() => (location.href = url), 3000);
+          } else {
+            status.textContent = "目前 App 未啟動（url.txt 為空）。請在電腦執行 start-dev.ps1。";
+          }
+        } catch (e) {
+          status.textContent = "讀取網址失敗：" + e;
+        }
+      })();
+    </script>
+  </body>
+</html>

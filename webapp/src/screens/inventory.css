@@ -1,0 +1,81 @@
+.inv-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+.csv-btn:disabled {
+  opacity: 0.45;
+}
+.inv-controls {
+  display: flex;
+  gap: 10px;
+  margin-bottom: 14px;
+}
+.search {
+  flex: 1;
+  background: var(--surface-card-high);
+  border: none;
+  border-radius: var(--radius-sm);
+  color: var(--text-primary);
+  padding: 12px 14px;
+  font-size: 14px;
+  outline: none;
+}
+.chip.on {
+  background: var(--brand-gold);
+  color: var(--text-on-gold);
+}
+.empty {
+  text-align: center;
+  padding: 32px;
+}
+
+.inv-list {
+  display: grid;
+  gap: 8px;
+}
+.inv-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 14px;
+  border: none;
+  color: var(--text-primary);
+  text-align: left;
+  cursor: pointer;
+}
+.rarity-tag {
+  font-size: 11px;
+  font-weight: 700;
+  color: #111;
+  padding: 3px 7px;
+  border-radius: var(--radius-sm);
+  min-width: 34px;
+  text-align: center;
+}
+.inv-main {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  flex: 1;
+  min-width: 0;
+}
+.inv-name {
+  font-size: 14px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.inv-code {
+  font-size: 11px;
+  color: var(--text-secondary);
+}
+.inv-right {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 2px;
+}
+.fav {
+  color: var(--brand-gold);
+}

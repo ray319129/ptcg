@@ -1,0 +1,104 @@
+/* 設計 Token — 與 Flutter AppTheme 1:1 對應 (Card拍拍 風格)。
+   Dark Mode First；data-theme="light" 切換亮色。
+   元件層一律引用語意變數，不得硬編色碼。 */
+
+:root,
+:root[data-theme="dark"] {
+  /* 品牌 / 稀有度峰值 */
+  --brand-gold: #ffcb05;
+  --text-on-gold: #121214;
+
+  /* 基底 */
+  --bg-base: #121214;
+  --surface-card: #1e1e24;
+  --surface-card-high: #26262e;
+  --divider: #2c2c34;
+
+  /* 漲跌語意 */
+  --up-trend: #34c759;
+  --down-trend: #ff3b30;
+
+  /* 文字 */
+  --text-primary: #f5f5f7;
+  --text-secondary: #9a9aa2;
+
+  /* 稀有度色票 */
+  --rarity-sar: #ffcb05;
+  --rarity-ur: #ff7ad9;
+  --rarity-sr: #b388ff;
+  --rarity-ar: #64b5f6;
+  --rarity-rr: #4dd0e1;
+  --rarity-r: #90a4ae;
+  --rarity-u: #78909c;
+  --rarity-c: #607d8b;
+
+  /* 圓角 / 間距 / 動畫 */
+  --radius-sm: 8px;
+  --radius-md: 14px;
+  --radius-lg: 20px;
+  --radius-pill: 999px;
+  --gap-4: 4px;
+  --gap-8: 8px;
+  --gap-12: 12px;
+  --gap-16: 16px;
+  --gap-24: 24px;
+  --motion-fast: 120ms;
+  --motion-base: 240ms;
+
+  /* 字體 */
+  --font-sans: "Inter", -apple-system, "PingFang TC", "Microsoft JhengHei",
+    sans-serif;
+  --font-mono: "JetBrains Mono", "Roboto Mono", monospace;
+}
+
+:root[data-theme="light"] {
+  --bg-base: #f7f7f9;
+  --surface-card: #ffffff;
+  --surface-card-high: #f0f0f3;
+  --divider: #e3e3e8;
+  --text-primary: #1b1b1f;
+  --text-secondary: #6b6b73;
+}
+
+* {
+  box-sizing: border-box;
+}
+html,
+body,
+#root {
+  height: 100%;
+  margin: 0;
+}
+body {
+  background: var(--bg-base);
+  color: var(--text-primary);
+  font-family: var(--font-sans);
+  -webkit-font-smoothing: antialiased;
+  /* 避免長時間掃描頁面的橡皮筋捲動 */
+  overscroll-behavior: none;
+}
+
+/* 語意 utility */
+.mono {
+  font-family: var(--font-mono);
+  letter-spacing: 0.5px;
+}
+.up {
+  color: var(--up-trend);
+}
+.down {
+  color: var(--down-trend);
+}
+.surface {
+  background: var(--surface-card);
+  border-radius: var(--radius-md);
+}
+.btn-gold {
+  background: var(--brand-gold);
+  color: var(--text-on-gold);
+  border: none;
+  border-radius: var(--radius-pill);
+  padding: 16px 24px;
+  font-weight: 700;
+  cursor: pointer;
+}

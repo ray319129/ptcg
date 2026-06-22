@@ -1,0 +1,124 @@
+.detail-top {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 16px;
+}
+.detail-top .icon-btn {
+  background: var(--surface-card-high);
+  color: var(--text-primary);
+}
+.detail-top .icon-btn.on {
+  color: var(--brand-gold);
+}
+.detail-name {
+  font-size: 18px;
+  font-weight: 700;
+  flex: 1;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.badge-grid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 16px;
+}
+.badge {
+  background: var(--surface-card-high);
+  padding: 6px 10px;
+  border-radius: var(--radius-sm);
+  font-size: 12px;
+}
+
+.price-matrix {
+  padding: 16px;
+}
+.pm-main {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin-bottom: 12px;
+}
+.pm-price {
+  font-size: 28px;
+  font-weight: 800;
+  color: var(--brand-gold);
+}
+.pm-sub {
+  display: flex;
+  gap: 12px;
+  border-top: 1px solid var(--divider);
+  padding-top: 12px;
+}
+.pm-cell {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  font-size: 13px;
+}
+.pm-cell .muted {
+  font-size: 11px;
+}
+
+.chart-box {
+  padding: 12px;
+  margin-top: 16px;
+}
+.range-tabs {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 8px;
+}
+.range-tab {
+  background: transparent;
+  border: 1px solid var(--divider);
+  color: var(--text-secondary);
+  border-radius: var(--radius-pill);
+  padding: 4px 14px;
+  font-size: 12px;
+  cursor: pointer;
+}
+.range-tab.on {
+  background: var(--brand-gold);
+  color: var(--text-on-gold);
+  border-color: var(--brand-gold);
+}
+.no-data {
+  height: 200px;
+  display: grid;
+  place-items: center;
+}
+
+.inv-actions {
+  padding: 16px;
+  margin-top: 16px;
+  display: grid;
+  gap: 16px;
+}
+.stepper-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+.stepper {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+.stepper button {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  border: 1px solid var(--divider);
+  background: var(--surface-card-high);
+  color: var(--text-primary);
+  font-size: 20px;
+  cursor: pointer;
+}
+.saving {
+  font-size: 12px;
+  text-align: right;
+}

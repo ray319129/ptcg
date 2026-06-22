@@ -1,0 +1,328 @@
+/* 掃描頁 HUD 疊層樣式 */
+.scan-root {
+  position: fixed;
+  inset: 0;
+  background: #000;
+  overflow: hidden;
+}
+.scan-video {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+/* 中央發光卡框：2.5:3.5 比例，外暗中亮 */
+.scan-viewfinder {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 72vw;
+  max-width: 360px;
+  aspect-ratio: 2.5 / 3.5;
+  transform: translate(-50%, -52%);
+  border: 2px solid rgba(255, 255, 255, 0.6);
+  border-radius: var(--radius-lg);
+  box-shadow: 0 0 0 100vmax rgba(0, 0, 0, 0.55);
+  transition: border-color var(--motion-base), box-shadow var(--motion-base);
+}
+.scan-viewfinder.gold {
+  border-color: var(--brand-gold);
+  box-shadow:
+    0 0 0 100vmax rgba(0, 0, 0, 0.55),
+    0 0 24px 4px var(--brand-gold);
+}
+
+.scan-topbar {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  display: flex;
+  align-items: center;
+  gap: var(--gap-8);
+  padding: calc(env(safe-area-inset-top) + 12px) 16px 12px;
+}
+.scan-topbar .badge {
+  background: rgba(0, 0, 0, 0.5);
+  padding: 6px 10px;
+  border-radius: var(--radius-pill);
+  font-size: 12px;
+}
+.scan-topbar .icon-btn {
+  margin-left: auto;
+}
+
+/* 卡價語言切換 */
+.lang-toggle {
+  display: flex;
+  background: rgba(0, 0, 0, 0.5);
+  border-radius: var(--radius-pill);
+  overflow: hidden;
+}
+.lang-toggle button {
+  background: transparent;
+  border: none;
+  color: var(--text-secondary);
+  font-size: 12px;
+  padding: 6px 12px;
+  cursor: pointer;
+}
+.lang-toggle button.on {
+  background: var(--brand-gold);
+  color: var(--text-on-gold);
+  font-weight: 700;
+}
+.icon-btn {
+  background: rgba(0, 0, 0, 0.5);
+  color: var(--text-primary);
+  border: none;
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  font-size: 16px;
+  cursor: pointer;
+}
+
+.live-ocr {
+  position: absolute;
+  top: calc(50% + 27vh);
+  left: 50%;
+  transform: translateX(-50%);
+  max-width: 80vw;
+  padding: 6px 14px;
+  background: rgba(0, 0, 0, 0.6);
+  border-radius: var(--radius-pill);
+  font-size: 14px;
+  color: var(--brand-gold);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  text-align: center;
+}
+
+/* 快門按鈕 */
+.shutter {
+  position: absolute;
+  bottom: calc(env(safe-area-inset-bottom) + 28px);
+  left: 50%;
+  transform: translateX(-50%);
+  width: 72px;
+  height: 72px;
+  border-radius: 50%;
+  border: 4px solid rgba(255, 255, 255, 0.85);
+  background: var(--brand-gold);
+  font-size: 28px;
+  color: var(--text-on-gold);
+  cursor: pointer;
+  display: grid;
+  place-items: center;
+}
+.shutter:disabled {
+  opacity: 0.6;
+  font-size: 14px;
+}
+.scan-hint {
+  position: absolute;
+  bottom: calc(env(safe-area-inset-bottom) + 116px);
+  left: 50%;
+  transform: translateX(-50%);
+  background: rgba(0, 0, 0, 0.55);
+  color: var(--text-primary);
+  padding: 6px 14px;
+  border-radius: var(--radius-pill);
+  font-size: 13px;
+  white-space: nowrap;
+}
+
+/* 結果浮層縮圖與「不是這張」 */
+.rt-thumb img {
+  width: 48px;
+  height: 67px;
+  object-fit: cover;
+  border-radius: 6px;
+}
+.rt-notthis {
+  background: none;
+  border: none;
+  color: var(--text-secondary);
+  font-size: 12px;
+  text-decoration: underline;
+  padding: 2px 0;
+  cursor: pointer;
+  text-align: left;
+}
+.sg-img {
+  width: 60px;
+  height: 84px;
+  object-fit: cover;
+  border-radius: 6px;
+  margin-bottom: 4px;
+}
+.sg-meta {
+  font-size: 11px;
+  color: var(--text-secondary);
+}
+.suggest-item.sel {
+  outline: 2px solid var(--brand-gold);
+}
+
+/* 結果浮層：語言標、動作連結、數量器 */
+.rt-lang {
+  font-size: 11px;
+  color: var(--text-secondary);
+  font-weight: 400;
+}
+.rt-actions {
+  display: flex;
+  gap: 12px;
+  margin-top: 4px;
+}
+.rt-link {
+  background: none;
+  border: none;
+  color: var(--text-secondary);
+  font-size: 12px;
+  text-decoration: underline;
+  padding: 0;
+  cursor: pointer;
+}
+.rt-link.warn {
+  color: var(--down-trend);
+}
+.qty-stepper {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin: 4px 0;
+}
+.qty-stepper button {
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  border: 1px solid var(--divider);
+  background: var(--surface-card-high);
+  color: var(--text-primary);
+  font-size: 18px;
+  cursor: pointer;
+}
+
+.start-btn {
+  position: absolute;
+  bottom: 48px;
+  left: 50%;
+  transform: translateX(-50%);
+}
+.scan-error {
+  position: absolute;
+  bottom: 48px;
+  left: 16px;
+  right: 16px;
+  padding: 16px;
+  color: var(--down-trend);
+  text-align: center;
+}
+
+/* 即時結果浮層：從底部滑入 */
+.result-tile {
+  position: absolute;
+  left: 12px;
+  right: 12px;
+  bottom: calc(env(safe-area-inset-bottom) + 16px);
+  display: flex;
+  gap: var(--gap-12);
+  padding: 14px;
+  animation: slideUp var(--motion-base) ease-out;
+}
+.result-tile.gold-border {
+  outline: 2px solid var(--brand-gold);
+}
+@keyframes slideUp {
+  from {
+    transform: translateY(120%);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+.rt-left {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  flex: 1;
+}
+.rt-code {
+  font-size: 13px;
+  color: var(--brand-gold);
+}
+.rt-name {
+  font-size: 15px;
+  font-weight: 600;
+}
+.rt-right {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 4px;
+}
+.rt-price {
+  font-size: 16px;
+  font-weight: 700;
+  color: var(--up-trend);
+}
+.rt-price .stale {
+  color: var(--down-trend);
+}
+.rt-owned {
+  font-size: 12px;
+  color: var(--text-secondary);
+}
+.rt-cta {
+  padding: 8px 14px;
+  font-size: 13px;
+}
+.rt-notfound {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  color: var(--text-secondary);
+}
+
+/* 模糊候選抽屜 */
+.suggest-drawer {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: calc(env(safe-area-inset-bottom) + 16px);
+  padding: 0 12px;
+}
+.suggest-title {
+  font-size: 13px;
+  color: var(--text-secondary);
+  margin-bottom: 8px;
+}
+.suggest-list {
+  display: flex;
+  gap: var(--gap-8);
+  overflow-x: auto;
+}
+.suggest-item {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 12px;
+  min-width: 140px;
+  border: none;
+  color: var(--text-primary);
+  text-align: left;
+  cursor: pointer;
+}
+.suggest-item .sim {
+  font-size: 12px;
+  color: var(--brand-gold);
+}
+.suggest-item .name {
+  font-size: 13px;
+}

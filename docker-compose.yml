@@ -1,0 +1,39 @@
+# 本機開發基礎設施：PostgreSQL（含掃描比對所需擴充）+ Redis。
+# 啟動： docker compose up -d
+services:
+  db:
+    image: postgres:16
+    container_name: ptcg-db
+    environment:
+      POSTGRES_USER: ptcg
+      POSTGRES_PASSWORD: "0907"
+      POSTGRES_DB: ptcg
+    ports:
+      # 主機已有 PostgreSQL 17/18 佔用 5432，故對外改用 5433 避免撞埠
+      - "55432:5432"
+    volumes:
+      - ptcg_pgdata:/var/lib/postgresql/data
+      # 首次啟動自動套用 schema 與種子資料（按檔名排序執行）
+      - ./backend/migrations/001_schema.sql:/docker-entrypoint-initdb.d/001_schema.sql:ro
+      - ./backend/migrations/002_seed.sql:/docker-entrypoint-initdb.d/002_seed.sql:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ptcg -d ptcg"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  redis:
+    image: redis:7
+    container_name: ptcg-redis
+    command: ["redis-server", "--requirepass", "0907"]
+    ports:
+      # 主機已有 Redis 佔用 6379，對外改用 6380
+      - "6380:6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "-a", "0907", "ping"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+volumes:
+  ptcg_pgdata:
