@@ -40,6 +40,31 @@ def rarity_rank(rarity: str) -> int:
     return RARITY_RANK.get(rarity.upper(), 0)
 
 
+# 神秘包「類別保底」支援的類別（對應市場主打賣法）。
+CATEGORIES = ("ex", "mega", "full_art_supporter")
+CATEGORY_LABELS = {
+    "ex": "寶可夢 ex",
+    "mega": "超級進化",
+    "full_art_supporter": "全圖人物",
+}
+# 全圖人物 = SR 以上稀有度的 Supporter（訓練家）卡
+_FULL_ART_MIN_RANK = 6
+
+
+def card_categories(card: "InventoryCard") -> set[str]:
+    """依名稱/牌種/稀有度推導卡片所屬的市場類別（可多屬）。"""
+    cats: set[str] = set()
+    name = (card.name_zh or "").strip()
+    is_ex = name.lower().endswith("ex")
+    if is_ex:
+        cats.add("ex")
+        if name.startswith("超級"):       # 超級XXXex = 超級進化 (Mega)
+            cats.add("mega")
+    if (card.card_type or "") == "Supporter" and rarity_rank(card.rarity) >= _FULL_ART_MIN_RANK:
+        cats.add("full_art_supporter")
+    return cats
+
+
 # 稀有度 → 獎級（用於 tier 分類與 PDF/UI 呈現）
 _RARITY_TIER = {
     "SAR": PrizeTier.GRAND, "UR": PrizeTier.GRAND, "HR": PrizeTier.GRAND,
@@ -61,6 +86,7 @@ class InventoryCard:
     rarity: str
     market_value: Decimal          # 市場估值
     liquidity_score: float = 1.0   # 0~1，越低代表越難變現
+    card_type: Optional[str] = None  # Pokemon / Supporter / Item / ...（類別保底用）
 
     @property
     def effective_value(self) -> Decimal:
@@ -110,6 +136,7 @@ class OptimizeResult:
     expected_value_per_pack: Decimal = Decimal("0.00")
     realized_margin: float = 0.0
     floor_per_pack: Decimal = Decimal("0.00")
+    payback_ratio: float = 0.0     # 期望體感價值 / 售價（回本率，賣點透明化）
 
 
 def _q(d: Decimal) -> Decimal:
@@ -134,6 +161,9 @@ def optimize_mystery_packs(
     *,
     floor_ratio: float = 0.5,
     guaranteed_rarity: Optional[str] = None,
+    guaranteed_categories: Optional[List[str]] = None,
+    chase_card_ids: Optional[List[str]] = None,
+    auto_chase_count: int = 0,
 ) -> OptimizeResult:
     """主函式：把 inventory 分配進 total_packs 個神秘包。
 
@@ -146,6 +176,10 @@ def optimize_mystery_packs(
     floor_ratio      : 每包最低「體感價值 / 售價」比，預設 0.5（半價保底，防雷包）。
     guaranteed_rarity: 每包保底至少一張 >= 此稀有度的卡（對應市場「保底SAR/SR」賣法）。
                        例如 'RR'、'AR'、'SR'、'SAR'。None 表示不設保底稀有度。
+    guaranteed_categories: 每包各保底至少一張該類別（'ex'/'mega'/'full_art_supporter'）。
+                       對應市場「必出 ex / 超級進化 / 全圖人物」賣法。
+    chase_card_ids   : 招牌頭獎卡的 card_id 清單。優先把這些灑進不同包（一包一張），
+                       確保招牌卡實際進包、不被當 leftover。
 
     回傳 OptimizeResult，內含每包卡片、商業指標與可行性判斷。
     """
@@ -170,43 +204,88 @@ def optimize_mystery_packs(
     def can_afford(card: InventoryCard) -> bool:
         return allocated_eff + card.effective_value <= budget
 
-    # ---- 0.5 保底稀有度：每包先放一張 >= 指定稀有度的卡 --------------------
     remaining = list(inventory)
-    if guaranteed_rarity:
-        min_rank = rarity_rank(guaranteed_rarity)
-        # 用「最便宜的合格卡」當保底，把貴的留給頭獎灑點，且省預算。
+    used: set[int] = set()
+
+    def _take(card: InventoryCard, pack: PackPlan) -> None:
+        nonlocal allocated_eff
+        pack.cards.append(card)
+        allocated_eff += card.effective_value
+        used.add(id(card))
+
+    # ---- 0.3 招牌頭獎卡：優先把指定卡灑進不同包（一包一張）-----------------
+    # 未指定 chase 但要求自動招牌時，取市值最高的 N 個 card_id 當招牌。
+    if not chase_card_ids and auto_chase_count > 0:
+        by_value = sorted(
+            {c.card_id: c.market_value for c in remaining}.items(),
+            key=lambda kv: kv[1], reverse=True,
+        )
+        chase_card_ids = [cid for cid, _ in by_value[:auto_chase_count]]
+    if chase_card_ids:
+        chase_set = set(chase_card_ids)
+        chase_cards = sorted(
+            (c for c in remaining if c.card_id in chase_set and id(c) not in used),
+            key=lambda c: c.market_value, reverse=True,
+        )
+        ci = 0
+        for p in packs:
+            if ci >= len(chase_cards):
+                break
+            c = chase_cards[ci]
+            ci += 1
+            if can_afford(c):
+                _take(c, p)
+        remaining = [c for c in remaining if id(c) not in used]
+
+    # ---- 0.5 各種「每包保底」：稀有度 + 類別（已滿足的包自動跳過，避免重複耗用）----
+    def guarantee_each_pack(predicate, label: str) -> Optional[str]:
+        """確保每個包至少有一張符合 predicate 的卡；回傳錯誤訊息或 None(成功)。"""
+        nonlocal remaining
+        need = [p for p in packs if not any(predicate(c) for c in p.cards)]
         qualifying = sorted(
-            (c for c in remaining if rarity_rank(c.rarity) >= min_rank),
+            (c for c in remaining if id(c) not in used and predicate(c)),
             key=lambda c: c.market_value,
         )
-        if len(qualifying) < total_packs:
-            return OptimizeResult(
-                False,
-                f"保底卡不足：每包需保底 >= {guaranteed_rarity.upper()}，"
-                f"需 {total_packs} 張、僅有 {len(qualifying)} 張。"
-                f"請降低保底稀有度、減少包數、或補貨。",
+        if len(qualifying) < len(need):
+            return (
+                f"{label}保底卡不足：尚需 {len(need)} 張、僅有 {len(qualifying)} 張。"
+                f"請放寬保底、減少包數或補貨。"
             )
-        used: set[int] = set()
         qi = 0
-        for p in packs:
-            # 取下一張買得起的合格卡
+        for p in need:
             placed = False
             while qi < len(qualifying):
                 c = qualifying[qi]
                 qi += 1
+                if id(c) in used:
+                    continue
                 if can_afford(c):
-                    p.cards.append(c)
-                    allocated_eff += c.effective_value
-                    used.add(id(c))
+                    _take(c, p)
                     placed = True
                     break
             if not placed:
-                return OptimizeResult(
-                    False,
-                    f"預算不足以為每包保底 >= {guaranteed_rarity.upper()}："
-                    f"請提高售價、降低毛利或保底稀有度。",
-                )
+                return f"預算不足以為每包保底「{label}」：請提高售價或降低毛利/保底。"
         remaining = [c for c in remaining if id(c) not in used]
+        return None
+
+    if guaranteed_rarity:
+        min_rank = rarity_rank(guaranteed_rarity)
+        err = guarantee_each_pack(
+            lambda c: rarity_rank(c.rarity) >= min_rank,
+            f">= {guaranteed_rarity.upper()}",
+        )
+        if err:
+            return OptimizeResult(False, err)
+
+    for cat in (guaranteed_categories or []):
+        if cat not in CATEGORIES:
+            continue
+        err = guarantee_each_pack(
+            lambda c, _cat=cat: _cat in card_categories(c),
+            CATEGORY_LABELS.get(cat, cat),
+        )
+        if err:
+            return OptimizeResult(False, err)
 
     # ---- 1. 分池（剩餘卡）-------------------------------------------------
     pools = _classify(remaining)
@@ -279,6 +358,7 @@ def optimize_mystery_packs(
     # ---- 5. 指標與可行性 --------------------------------------------------
     total_display = sum((p.display_value for p in packs), Decimal("0.00"))
     ev_per_pack = _q(total_display / total_packs) if total_packs else Decimal("0.00")
+    payback_ratio = float(ev_per_pack / pack_price) if pack_price > 0 else 0.0
     realized_cost = allocated_eff
     realized_margin = (
         float((revenue - realized_cost) / revenue) if revenue > 0 else 0.0
@@ -309,6 +389,7 @@ def optimize_mystery_packs(
         expected_value_per_pack=ev_per_pack,
         realized_margin=round(realized_margin, 4),
         floor_per_pack=floor_per_pack,
+        payback_ratio=round(payback_ratio, 4),
     )
 
 
@@ -328,6 +409,7 @@ def expand_inventory(rows: List[dict]) -> List[InventoryCard]:
                     rarity=r["rarity"],
                     market_value=Decimal(str(r["market_value"])),
                     liquidity_score=float(r.get("liquidity_score", 1.0)),
+                    card_type=r.get("card_type"),
                 )
             )
     return out

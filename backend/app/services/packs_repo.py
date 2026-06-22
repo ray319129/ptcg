@@ -32,6 +32,7 @@ async def load_eligible_inventory(
         SELECT ui.card_id,
                c.name_zh,
                c.rarity,
+               c.card_type,
                {pe}                           AS market_value,
                COALESCE(c.liquidity_score, 1) AS liquidity_score,
                SUM(ui.quantity)               AS quantity
@@ -40,7 +41,7 @@ async def load_eligible_inventory(
         WHERE ui.user_id = CAST(:uid AS uuid)
           AND COALESCE(ui.pack_eligible, TRUE) = TRUE
           AND (:keep_fav OR COALESCE(ui.is_favorite, FALSE) = FALSE)
-        GROUP BY ui.card_id, c.name_zh, c.rarity, c.price_jp, c.price_tw,
+        GROUP BY ui.card_id, c.name_zh, c.rarity, c.card_type, c.price_jp, c.price_tw,
                  c.current_price, c.liquidity_score
         HAVING SUM(ui.quantity) > 0
         """
@@ -56,6 +57,7 @@ async def load_eligible_inventory(
             "market_value": Decimal(str(r["market_value"])),
             "liquidity_score": float(r["liquidity_score"]),
             "quantity": int(r["quantity"]),
+            "card_type": r["card_type"],
         }
         for r in rows.mappings()
     ]

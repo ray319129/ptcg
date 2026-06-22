@@ -19,7 +19,19 @@ export function MysteryPackScreen() {
   const [margin, setMargin] = useState(30); // 顯示為百分比
   const [floorRatio, setFloorRatio] = useState(50);
   const [guaranteedRarity, setGuaranteedRarity] = useState<string>(""); // "" = 不保底
+  const [cats, setCats] = useState<Record<string, boolean>>({
+    ex: false,
+    mega: false,
+    full_art_supporter: false,
+  });
+  const [autoChase, setAutoChase] = useState(0);
   const [excludeFav, setExcludeFav] = useState(true);
+
+  const CAT_LABELS: Record<string, string> = {
+    ex: "必出 ex",
+    mega: "必出超級進化",
+    full_art_supporter: "必出全圖人物",
+  };
 
   const [result, setResult] = useState<OptimizeResponse | null>(null);
   const [loading, setLoading] = useState(false);
@@ -40,6 +52,9 @@ export function MysteryPackScreen() {
         target_margin: margin / 100,
         floor_ratio: floorRatio / 100,
         guaranteed_rarity: guaranteedRarity || null,
+        guaranteed_categories:
+          Object.keys(cats).filter((k) => cats[k]) || null,
+        auto_chase_count: autoChase,
         exclude_favorites: excludeFav,
         lang: priceLang,
       });
@@ -91,6 +106,23 @@ export function MysteryPackScreen() {
             <option value="SAR">保底 ≥ SAR</option>
           </select>
         </label>
+        <div className="field">
+          <span className="field-label">類別保底（市場主打賣法）</span>
+          <div className="cat-chips">
+            {Object.keys(CAT_LABELS).map((k) => (
+              <button
+                key={k}
+                type="button"
+                className={`chip${cats[k] ? " on" : ""}`}
+                onClick={() => setCats((s) => ({ ...s, [k]: !s[k] }))}
+              >
+                {CAT_LABELS[k]}
+              </button>
+            ))}
+          </div>
+        </div>
+        <NumField label="招牌頭獎卡張數（自動選最高價）" value={autoChase}
+          min={0} max={1000} onChange={setAutoChase} />
         <label className="toggle-row">
           <span>排除最愛卡</span>
           <input type="checkbox" checked={excludeFav}
@@ -135,6 +167,7 @@ function ResultView(props: {
         <div className="metrics">
           <Metric label="實現毛利" value={`${(r.realized_margin * 100).toFixed(1)}%`} />
           <Metric label="每包期望值" value={money(r.expected_value_per_pack)} />
+          <Metric label="回本率" value={`${Math.round(r.payback_ratio * 100)}%`} />
           <Metric label="成本預算" value={money(r.budget)} />
           <Metric label="剩餘滯銷"
             value={`${r.leftover_count} 張 / ${money(r.leftover_value)}`} />

@@ -12,6 +12,12 @@
   display: grid;
   gap: 16px;
 }
+.cat-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 6px;
+}
 .field {
   display: grid;
   gap: 8px;

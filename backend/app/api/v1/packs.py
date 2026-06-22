@@ -62,6 +62,9 @@ async def optimize(
         target_margin=payload.target_margin,
         floor_ratio=payload.floor_ratio,
         guaranteed_rarity=payload.guaranteed_rarity,
+        guaranteed_categories=payload.guaranteed_categories,
+        chase_card_ids=payload.chase_card_ids,
+        auto_chase_count=payload.auto_chase_count,
     )
 
     response = serialize_result(

@@ -211,6 +211,7 @@ export interface OptimizeResponse {
   allocated_effective_value: string;
   expected_value_per_pack: string;
   realized_margin: number;
+  payback_ratio: number;
   floor_per_pack: string;
   total_packs: number;
   pack_price: string;
@@ -226,6 +227,9 @@ export interface OptimizeRequest {
   target_margin: number;
   floor_ratio?: number;
   guaranteed_rarity?: string | null;
+  guaranteed_categories?: string[] | null;
+  chase_card_ids?: string[] | null;
+  auto_chase_count?: number;
   exclude_favorites?: boolean;
   lang?: "tw" | "jp";
 }

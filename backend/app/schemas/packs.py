@@ -30,6 +30,18 @@ class OptimizeRequest(BaseModel):
         default=None,
         description="每包保底至少一張 >= 此稀有度（如 RR/AR/SR/SAR）；對應市場保底賣法",
     )
+    guaranteed_categories: Optional[List[str]] = Field(
+        default=None,
+        description="每包各保底一張該類別：ex / mega(超級進化) / full_art_supporter(全圖人物)",
+    )
+    chase_card_ids: Optional[List[str]] = Field(
+        default=None,
+        description="招牌頭獎卡 card_id 清單，優先灑進不同包",
+    )
+    auto_chase_count: int = Field(
+        default=0, ge=0, le=1000,
+        description="未指定 chase 時，自動取市值最高的 N 張當招牌頭獎卡",
+    )
     exclude_favorites: bool = Field(
         default=True, description="是否排除使用者標記為最愛的卡"
     )
@@ -71,6 +83,7 @@ class OptimizeResponse(BaseModel):
     allocated_effective_value: Decimal
     expected_value_per_pack: Decimal
     realized_margin: float
+    payback_ratio: float = 0.0
     floor_per_pack: Decimal
     total_packs: int
     pack_price: Decimal
@@ -131,6 +144,7 @@ def serialize_result(
         allocated_effective_value=result.allocated_effective_value,
         expected_value_per_pack=result.expected_value_per_pack,
         realized_margin=result.realized_margin,
+        payback_ratio=result.payback_ratio,
         floor_per_pack=result.floor_per_pack,
         total_packs=total_packs,
         pack_price=pack_price,
