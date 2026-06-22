@@ -123,6 +123,30 @@ export const patchInventory = (
     patch,
   );
 
+// ---- Card catalog search (手動加入庫存) ------------------------------------
+export interface CardSearchItem {
+  card_id: string;
+  set_code: string;
+  card_number: string;
+  rarity: string;
+  name_zh: string;
+  image_url: string | null;
+  market_value: string;
+  owned_qty: number;
+}
+/** 用卡名或卡號搜尋卡片百科（供手動加入庫存）。 */
+export const searchCards = (
+  q: string,
+  userId: string,
+  lang: "tw" | "jp" = "tw",
+  limit = 20,
+  signal?: AbortSignal,
+) => {
+  const params = new URLSearchParams({ q, lang, limit: String(limit) });
+  if (userId) params.set("user_id", userId);
+  return apiGet<CardSearchItem[]>(`/api/v1/cards/search?${params}`, signal);
+};
+
 // ---- Card detail -----------------------------------------------------------
 export interface PricePoint {
   recorded_date: string;

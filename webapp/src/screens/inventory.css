@@ -3,6 +3,14 @@
   align-items: center;
   justify-content: space-between;
 }
+.inv-header-btns {
+  display: flex;
+  gap: 8px;
+}
+.add-btn {
+  background: var(--brand-gold);
+  color: var(--text-on-gold);
+}
 .csv-btn:disabled {
   opacity: 0.45;
 }

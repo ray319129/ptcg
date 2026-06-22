@@ -11,11 +11,91 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.db import get_db
 from app.pricing import price_expr
-from app.schemas.portfolio import CardDetail, PricePoint
+from app.schemas.portfolio import CardDetail, CardSearchItem, PricePoint
 
 logger = logging.getLogger("ptcg.cards")
 
 router = APIRouter(prefix="/api/v1/cards", tags=["cards"])
+
+
+# 此路由必須宣告在 /{card_id:path} 之前，否則 'search' 會被當成 card_id 吃掉。
+@router.get("/search", response_model=list[CardSearchItem])
+async def search_cards(
+    q: str = Query(..., min_length=1, description="卡名 / 卡號 / set_code 關鍵字"),
+    user_id: str | None = Query(default=None),
+    lang: str | None = Query(default="tw"),
+    limit: int = Query(default=20, ge=1, le=50),
+    session: AsyncSession = Depends(get_db),
+) -> list[CardSearchItem]:
+    """卡片百科搜尋：用卡名或卡號比對，供手動加入庫存。"""
+    kw = q.strip()
+    if not kw:
+        return []
+    like = f"%{kw}%"
+    try:
+        rows = (
+            await session.execute(
+                text(
+                    f"""
+                    SELECT card_id, set_code, card_number, rarity, name_zh,
+                           image_url,
+                           {price_expr(lang, 'cards')} AS market_value
+                    FROM cards
+                    WHERE name_zh ILIKE :like
+                       OR card_id ILIKE :like
+                       OR set_code ILIKE :like
+                       OR card_number ILIKE :like
+                       OR (set_code || ' ' || card_number) ILIKE :like
+                    ORDER BY
+                        -- 名稱開頭命中優先，其次卡號開頭，再依市值高到低
+                        (name_zh ILIKE :prefix) DESC,
+                        (card_number ILIKE :prefix) DESC,
+                        {price_expr(lang, 'cards')} DESC
+                    LIMIT :limit
+                    """
+                ),
+                {"like": like, "prefix": f"{kw}%", "limit": limit},
+            )
+        ).mappings().all()
+
+        owned: dict[str, int] = {}
+        if user_id and rows:
+            ids = [r["card_id"] for r in rows]
+            crows = (
+                await session.execute(
+                    text(
+                        """
+                        SELECT card_id, COALESCE(SUM(quantity),0) AS qty
+                        FROM user_inventory
+                        WHERE user_id = CAST(:uid AS uuid)
+                          AND card_id = ANY(:ids)
+                        GROUP BY card_id
+                        """
+                    ),
+                    {"uid": user_id, "ids": ids},
+                )
+            ).mappings().all()
+            owned = {r["card_id"]: int(r["qty"]) for r in crows}
+    except SQLAlchemyError:
+        logger.exception("卡片搜尋失敗 q=%s", kw)
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail="搜尋暫時無法使用",
+        )
+
+    return [
+        CardSearchItem(
+            card_id=r["card_id"],
+            set_code=r["set_code"],
+            card_number=r["card_number"],
+            rarity=r["rarity"],
+            name_zh=r["name_zh"],
+            image_url=r["image_url"],
+            market_value=Decimal(r["market_value"]).quantize(Decimal("0.01")),
+            owned_qty=owned.get(r["card_id"], 0),
+        )
+        for r in rows
+    ]
 
 
 # card_id 內含斜線（如 'SV8a_217/187'），用 :path 轉換器才能正確匹配整段

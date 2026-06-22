@@ -78,6 +78,19 @@ class InventoryPatch(BaseModel):
     pack_eligible: Optional[bool] = None
 
 
+class CardSearchItem(BaseModel):
+    """卡片百科搜尋結果（手動加入庫存用）。"""
+
+    card_id: str
+    set_code: str
+    card_number: str
+    rarity: str
+    name_zh: str
+    image_url: Optional[str] = None
+    market_value: Decimal
+    owned_qty: int = Field(default=0, description="使用者目前持有數")
+
+
 class PricePoint(BaseModel):
     recorded_date: str
     price: Decimal

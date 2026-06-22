@@ -1,0 +1,118 @@
+.card-search {
+  padding-bottom: 24px;
+}
+.cs-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 14px;
+}
+.cs-header .page-title {
+  margin: 0;
+}
+.cs-status {
+  margin-top: 12px;
+}
+
+.cs-list {
+  display: grid;
+  gap: 8px;
+  margin-top: 14px;
+}
+.cs-card {
+  padding: 0;
+  overflow: hidden;
+}
+.cs-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  padding: 10px 12px;
+  border: none;
+  background: transparent;
+  color: var(--text-primary);
+  text-align: left;
+  cursor: pointer;
+}
+.cs-thumb {
+  width: 44px;
+  height: 60px;
+  flex: 0 0 auto;
+  border-radius: var(--radius-sm);
+  overflow: hidden;
+  background: var(--surface-card-high);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.cs-thumb img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+.cs-noimg {
+  font-size: 10px;
+  color: var(--text-secondary);
+}
+.cs-main {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  flex: 1;
+  min-width: 0;
+}
+.cs-name {
+  font-size: 14px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.cs-code {
+  font-size: 11px;
+  color: var(--text-secondary);
+}
+.cs-rarity {
+  align-self: flex-start;
+}
+.cs-right {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 3px;
+}
+.cs-owned {
+  font-size: 11px;
+}
+
+.cs-add {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 12px 14px;
+  border-top: 1px solid var(--divider);
+}
+.cs-add-btn {
+  background: var(--brand-gold);
+  color: var(--text-on-gold);
+}
+.cs-add-btn:disabled {
+  opacity: 0.5;
+}
+
+.cs-toast {
+  position: fixed;
+  left: 50%;
+  bottom: 88px;
+  transform: translateX(-50%);
+  max-width: 90vw;
+  background: var(--surface-card-high);
+  color: var(--text-primary);
+  border: 1px solid var(--divider);
+  border-radius: var(--radius-sm);
+  padding: 10px 16px;
+  font-size: 13px;
+  box-shadow: 0 6px 24px rgba(0, 0, 0, 0.4);
+  z-index: 50;
+}

@@ -12,6 +12,7 @@ import {
 import { BottomNav } from "./components/BottomNav";
 import { AuthScreen } from "./screens/AuthScreen";
 import { DashboardScreen } from "./screens/DashboardScreen";
+import { CardSearchScreen } from "./screens/CardSearchScreen";
 import { InventoryScreen } from "./screens/InventoryScreen";
 import { MysteryPackScreen } from "./screens/MysteryPackScreen";
 import { useApp } from "./store";
@@ -43,6 +44,7 @@ function Shell() {
         <Routes>
           <Route path="/" element={<DashboardScreen />} />
           <Route path="/inventory" element={<InventoryScreen />} />
+          <Route path="/search" element={<CardSearchScreen />} />
           <Route path="/packs" element={<MysteryPackScreen />} />
           <Route path="/cards/:cardId" element={<CardDetailScreen />} />
           <Route path="/scan" element={<ScanRoute />} />

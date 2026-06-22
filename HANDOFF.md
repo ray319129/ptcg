@@ -4,11 +4,7 @@
 > 使用者：Ray（ray319129@gmail.com）。全程用**繁體中文**回覆。
 
 ## ⭐ 首要待辦（使用者最新需求）
-**手動搜尋加入庫存**：在前端讓使用者用**卡名或卡號搜尋**卡片百科 → 點選 → 選數量 → 加入庫存（不一定要掃描）。
-實作指引：
-- 後端：加 `GET /api/v1/cards/search?q=&lang=&limit=`（query 卡 `cards` 表，用 `name_zh ILIKE` 或 `set_code/card_number` 比對，回傳卡片 + 該語言價 + image_url）。可放在 `app/api/v1/cards.py`，沿用 `app.pricing.price_expr`。
-- 前端：在 `InventoryScreen` 或新「搜尋」頁加搜尋框 → 結果列表（縮圖+名+價）→ 點卡開 quantity stepper → 呼叫既有 `addInventory(userId, cardId, qty)`。`addInventory` 已存在 `webapp/src/api/endpoints.ts`。
-- 注意 `card_id` 含斜線（如 `M5_001/081`），路由用 `{card_id:path}`；前端 `encodeURIComponent`。
+（目前無待辦。下一步看使用者需求。）
 
 ## 🟢 服務啟動狀態（背景執行中，關機後用 `./start-dev.ps1` 重啟）
 | 服務 | 位置 | 備註 |
@@ -36,6 +32,7 @@
 5. **CSV 匯出**：庫存頁「⬇匯出CSV」→ `/api/v1/inventory/export.csv?user_id=&lang=`。
 6. **神秘包**：`/api/v1/packs/optimize`（分層貪婪+流動性折價+**保底稀有度**guaranteed_rarity）+ PDF 出貨單。
 7. **GitHub**：程式碼已推 https://github.com/ray319129/ptcg（main）。Pages 已啟用(/docs)。`start-dev.ps1` 每次啟動自動 push 新 tunnel 網址到 `docs/url.txt`。
+8. **手動搜尋加入庫存**：`GET /api/v1/cards/search?q=&user_id=&lang=&limit=`（`backend/app/api/v1/cards.py`，**宣告在 `/{card_id:path}` 之前**，否則 search 會被當 card_id）；卡名/卡號/set_code ILIKE 比對、回傳該語言價+image_url+owned_qty。前端新頁 `webapp/src/screens/CardSearchScreen.tsx`（路由 `/search`），庫存頁右上「＋ 加入卡片」進入：搜尋框(350ms 防抖)→結果列表(縮圖+名+價+持有數)→點卡展開數量器→`加入庫存`呼叫既有 `addInventory`。已驗證 search/add/persist OK。
 
 ## 🗂️ 關鍵檔案
 - 後端 API：`backend/app/api/v1/`（match.py=掃描比對, cards.py, portfolio.py=儀表板/庫存/CSV, packs.py, auth.py, parser.py=舊OCR已不用）

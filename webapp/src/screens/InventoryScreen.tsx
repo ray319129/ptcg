@@ -56,6 +56,10 @@ export function InventoryScreen() {
     <div className="screen-pad inventory">
       <div className="inv-header">
         <h2 className="page-title">庫存</h2>
+        <div className="inv-header-btns">
+        <button className="chip add-btn" onClick={() => nav("/search")}>
+          ＋ 加入卡片
+        </button>
         <button
           className="chip csv-btn"
           disabled={items.length === 0}
@@ -74,6 +78,7 @@ export function InventoryScreen() {
         >
           ⬇ 匯出 CSV
         </button>
+        </div>
       </div>
       <div className="inv-controls">
         <input className="search" placeholder="搜尋卡名或卡號…" value={q}
