@@ -18,6 +18,9 @@ from app.pricing import price_expr
 from app.schemas.portfolio import (
     InventoryAdd,
     InventoryAddResult,
+    InventoryBulk,
+    InventoryBulkResult,
+    InventoryClear,
     InventoryItem,
     InventoryPage,
     InventoryPatch,
@@ -219,7 +222,7 @@ async def list_inventory(
                 text(
                     f"""
                     SELECT ui.card_id, c.set_code, c.card_number, c.name_zh,
-                           c.rarity, ui.quantity,
+                           c.rarity, ui.quantity, c.image_url,
                            {price_expr(lang, 'c')} AS market_value,
                            c.liquidity_score,
                            COALESCE(ui.is_favorite, FALSE)   AS is_favorite,
@@ -259,6 +262,7 @@ async def list_inventory(
             liquidity_score=float(r["liquidity_score"]),
             is_favorite=bool(r["is_favorite"]),
             pack_eligible=bool(r["pack_eligible"]),
+            image_url=r["image_url"],
         )
         for r in rows
     ]
@@ -318,6 +322,83 @@ async def add_inventory(
         rarity=card["rarity"],
         market_value=Decimal(card["price"]).quantize(Decimal("0.01")),
     )
+
+
+@router.post("/inventory/bulk", response_model=InventoryBulkResult)
+async def bulk_inventory(
+    payload: InventoryBulk,
+    session: AsyncSession = Depends(get_db),
+) -> InventoryBulkResult:
+    """批次編輯選取的庫存卡：delete=True 刪除，否則套用最愛 / 神秘包資格。"""
+    try:
+        if payload.delete:
+            res = await session.execute(
+                text(
+                    """
+                    DELETE FROM user_inventory
+                    WHERE user_id = CAST(:uid AS uuid)
+                      AND card_id = ANY(:ids)
+                    """
+                ),
+                {"uid": payload.user_id, "ids": payload.card_ids},
+            )
+        else:
+            sets = []
+            params: dict = {"uid": payload.user_id, "ids": payload.card_ids}
+            if payload.is_favorite is not None:
+                sets.append("is_favorite = :fav")
+                params["fav"] = payload.is_favorite
+            if payload.pack_eligible is not None:
+                sets.append("pack_eligible = :elig")
+                params["elig"] = payload.pack_eligible
+            if not sets:
+                raise HTTPException(
+                    status_code=status.HTTP_400_BAD_REQUEST,
+                    detail="沒有可更新的欄位",
+                )
+            res = await session.execute(
+                text(
+                    f"""
+                    UPDATE user_inventory SET {', '.join(sets)}
+                    WHERE user_id = CAST(:uid AS uuid)
+                      AND card_id = ANY(:ids)
+                    """
+                ),
+                params,
+            )
+        await session.commit()
+    except HTTPException:
+        raise
+    except SQLAlchemyError:
+        await session.rollback()
+        logger.exception("bulk inventory 失敗 user=%s", payload.user_id)
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE, detail="批次更新失敗"
+        )
+    return InventoryBulkResult(affected=res.rowcount or 0)
+
+
+@router.post("/inventory/clear", response_model=InventoryBulkResult)
+async def clear_inventory(
+    payload: InventoryClear,
+    session: AsyncSession = Depends(get_db),
+) -> InventoryBulkResult:
+    """一鍵清空使用者的整個收藏。"""
+    try:
+        res = await session.execute(
+            text(
+                "DELETE FROM user_inventory WHERE user_id = CAST(:uid AS uuid)"
+            ),
+            {"uid": payload.user_id},
+        )
+        await session.commit()
+    except SQLAlchemyError:
+        await session.rollback()
+        logger.exception("clear inventory 失敗 user=%s", payload.user_id)
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE, detail="清空失敗"
+        )
+    return InventoryBulkResult(affected=res.rowcount or 0)
 
 
 @router.get("/inventory/export.csv", response_class=StreamingResponse)

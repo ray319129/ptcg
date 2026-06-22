@@ -45,6 +45,7 @@ class InventoryItem(BaseModel):
     liquidity_score: float
     is_favorite: bool
     pack_eligible: bool
+    image_url: Optional[str] = None
 
 
 class InventoryPage(BaseModel):
@@ -76,6 +77,29 @@ class InventoryPatch(BaseModel):
     quantity: Optional[int] = Field(default=None, ge=0)
     is_favorite: Optional[bool] = None
     pack_eligible: Optional[bool] = None
+
+
+class InventoryBulk(BaseModel):
+    """批次編輯多張庫存卡（庫存頁多選操作）。
+
+    delete=True 時刪除選取項；否則套用有帶值的開關欄位。
+    """
+
+    user_id: str
+    card_ids: List[str] = Field(..., min_length=1)
+    is_favorite: Optional[bool] = None
+    pack_eligible: Optional[bool] = None
+    delete: bool = False
+
+
+class InventoryBulkResult(BaseModel):
+    affected: int
+
+
+class InventoryClear(BaseModel):
+    """一鍵清空整個收藏。"""
+
+    user_id: str
 
 
 class CardSearchItem(BaseModel):

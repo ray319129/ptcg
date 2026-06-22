@@ -64,6 +64,7 @@ export interface InventoryItem {
   liquidity_score: number;
   is_favorite: boolean;
   pack_eligible: boolean;
+  image_url: string | null;
 }
 export interface InventoryPage {
   items: InventoryItem[];
@@ -146,6 +147,25 @@ export const searchCards = (
   if (userId) params.set("user_id", userId);
   return apiGet<CardSearchItem[]>(`/api/v1/cards/search?${params}`, signal);
 };
+
+export interface BulkResult {
+  affected: number;
+}
+/** 批次編輯選取的庫存卡（最愛 / 神秘包資格 / 刪除）。 */
+export const bulkInventory = (
+  userId: string,
+  cardIds: string[],
+  patch: { is_favorite?: boolean; pack_eligible?: boolean; delete?: boolean },
+) =>
+  apiPost<BulkResult>("/api/v1/inventory/bulk", {
+    user_id: userId,
+    card_ids: cardIds,
+    ...patch,
+  });
+
+/** 一鍵清空整個收藏。 */
+export const clearInventory = (userId: string) =>
+  apiPost<BulkResult>("/api/v1/inventory/clear", { user_id: userId });
 
 // ---- Card detail -----------------------------------------------------------
 export interface PricePoint {
