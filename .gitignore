@@ -24,6 +24,13 @@ __pycache__/
 .venv/
 venv/
 
+# 辨識評測樣本照片（個人實拍，不進版控；README/manifest/harness 仍追蹤）
+backend/_samples/*.jpg
+backend/_samples/*.jpeg
+backend/_samples/*.png
+backend/_samples/*.heic
+backend/_samples/*.webp
+
 # 暫存 / 機密
 *.log
 *.mov

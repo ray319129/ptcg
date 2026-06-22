@@ -25,7 +25,7 @@
 - 缺圖：`M5_116/081`、`M5_118/081`（milongja 也沒有，不可掃）。
 
 ## ✅ 已完成功能
-1. **影像比對掃描**（取代 OCR）：MobileNetV2 1280維 embedding，後端比對 1629 張卡圖索引（`backend/models/card_index.npz`）。OpenCV 自動偵測卡片矩形+透視校正。模擬命中率 Top1 92%。
+1. **影像辨識掃描**（取代 OCR）：**SIFT 局部特徵 + CLAHE + FLANN 投票 + RANSAC 幾何驗證**（`backend/app/services/sift_match.py`，索引 `backend/models/sift_index.npz`，建：`python -m app.services.sift_match --build`）。對 holo/AR 強反光遠比舊的 MobileNet 全域 embedding 穩健——真實照片實測 Top-1 由 13%→**100%**、空畫面 0 假陽性（評測工具 `backend/eval_match.py` + 樣本資料夾 `backend/_samples/`，照片本身不進版控）。OpenCV `detect_card`（在 `image_match.py`）仍負責畫面中卡片定位+透視校正；舊 MobileNet embedding 程式保留但已不用於辨識。信心門檻在 `sift_match.py`：`MIN_INLIERS`(12)、`MARGIN`(1.6)；不夠信心就不回報，由連續掃描下一幀再試。
 2. **連續自動偵測**：卡片放上去**定時(~1.2s)自動辨識**，不需按拍攝、不需靜止（閃卡反光也行）。結果可選數量收藏 / 看其他候選 / 都不是重掃。掃描器不停。
 3. **雙語卡價** + 掃描頁左上「繁中/日文」切換（存 localStorage，全 app 生效）。
 4. **帳號系統**：註冊/登入（`/api/v1/auth/register|login`，pbkdf2雜湊），資料綁帳號保存。前端未登入顯示 `AuthScreen`。

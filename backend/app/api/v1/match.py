@@ -1,7 +1,7 @@
-"""/api/v1/scan/match —— 影像比對掃描（ManaBox 式）。
+"""/api/v1/scan/match —— 卡片影像辨識掃描。
 
-接收前端拍到的卡片影像 → MobileNet embedding → 與卡圖庫 cosine 比對 →
-回傳最相近的卡片（及候選清單）。取代讀小字 OCR。
+接收前端拍到的影像 → 偵測卡片 → SIFT 局部特徵 + RANSAC 幾何驗證比對卡圖庫 →
+回傳最相近的卡片（及候選清單）。對 holo/AR 強反光遠比全域 embedding 穩健。
 """
 from __future__ import annotations
 
@@ -15,15 +15,12 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.db import get_db
 from app.pricing import price_expr
 from app.schemas.imatch import MatchCandidate, MatchResponse
-from app.services import image_match
+from app.services import sift_match
 
 logger = logging.getLogger("ptcg.match")
 
 router = APIRouter(prefix="/api/v1/scan", tags=["scan"])
 
-# 卡片視覺結構相近，候選相似度普遍偏高且彼此接近；Top-1 命中率高（模擬 92%），
-# 故只要最佳相似度 >= MIN_SIM 就採用第 1 名，並一律附候選讓使用者一鍵更正。
-MIN_SIM = 0.70
 MAX_UPLOAD = 6 * 1024 * 1024  # 6MB
 
 
@@ -102,18 +99,18 @@ async def match_card(
     if len(data) > MAX_UPLOAD:
         raise HTTPException(status.HTTP_413_REQUEST_ENTITY_TOO_LARGE, "影像過大")
 
-    # 1) 偵測卡片 → embedding → 比對（CPU 運算，放到執行緒避免阻塞事件迴圈）
+    # 1) 偵測卡片 → SIFT 局部特徵 + 幾何驗證辨識（CPU 運算，放到執行緒避免阻塞事件迴圈）
     try:
         import anyio
 
-        pairs, detected = await anyio.to_thread.run_sync(_embed_and_match, data)
+        pairs, detected, confident = await anyio.to_thread.run_sync(_identify, data)
     except FileNotFoundError:
         raise HTTPException(
             status.HTTP_503_SERVICE_UNAVAILABLE,
-            "卡圖索引尚未建立（請先執行 image_match --build）",
+            "卡圖索引尚未建立（請先執行 python -m app.services.sift_match --build）",
         )
     except Exception:  # noqa: BLE001
-        logger.exception("影像比對失敗")
+        logger.exception("影像辨識失敗")
         raise HTTPException(status.HTTP_400_BAD_REQUEST, "影像無法辨識，請重拍")
 
     # 2) 補卡片資料
@@ -132,20 +129,24 @@ async def match_card(
         return MatchResponse(success=False, detected=detected, message=msg)
 
     top = candidates[0]
-    hint = "" if detected else "（未偵測到卡片邊框，請讓整張卡入鏡）"
-    if top.similarity >= MIN_SIM:
+    # confident=幾何內點數達門檻且明顯領先 → 採信並自動回報；否則由連續掃描下一幀再試
+    if confident:
         return MatchResponse(
             success=True, best=top, candidates=candidates,
             detected=detected, message="命中",
         )
     return MatchResponse(
         success=False, candidates=candidates, detected=detected,
-        message=f"相似度偏低，請重拍或從候選確認{hint}",
+        message="信心不足，請重拍或從候選確認",
     )
 
 
-def _embed_and_match(data: bytes) -> tuple[list[tuple[str, float]], bool]:
-    q, detected = image_match.embed_query(data)
-    if q is None:  # 畫面中沒偵測到卡片 → 不比對
-        return [], detected
-    return image_match.match(q, top_k=5), detected
+# 內點數→0~1 顯示用信心（候選清單的百分比）。40 內點視為滿信心。
+def _conf(inliers: int) -> float:
+    return min(inliers / 40.0, 1.0)
+
+
+def _identify(data: bytes) -> tuple[list[tuple[str, float]], bool, bool]:
+    scored, detected, confident = sift_match.identify(data)
+    pairs = [(cid, _conf(inl)) for cid, inl in scored]
+    return pairs, detected, confident

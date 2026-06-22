@@ -17,8 +17,23 @@ logging.basicConfig(level=logging.INFO)
 
 
 async def _lifespan(app: FastAPI):
-    # 啟動：可在此做連線預熱 / 健檢；關閉：釋放連線池。
+    # 啟動：背景預載 SIFT 卡圖索引（~300MB，建 FLANN 需數秒），讓第一次掃描不卡。
+    import anyio
+
+    async def _warm():
+        try:
+            from app.services import sift_match
+
+            await anyio.to_thread.run_sync(sift_match._load)
+            logging.getLogger("ptcg").info("SIFT 索引預載完成")
+        except Exception:  # noqa: BLE001
+            logging.getLogger("ptcg").warning("SIFT 索引預載失敗（首次掃描會較慢）")
+
+    import asyncio
+
+    task = asyncio.create_task(_warm())
     yield
+    task.cancel()
     await engine.dispose()
     await redis_pool.aclose()
 
