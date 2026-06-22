@@ -34,8 +34,13 @@ RATIO = 0.75                   # Lowe ratio test
 SHORTLIST = 25                 # 投票後進入專屬比對 + RANSAC 的候選數
 RANSAC_THRESH = 5.0
 MIN_INLIERS = 12               # 採信門檻：最佳內點數下限
-MARGIN = 1.6                   # 最佳須 ≥ 次佳 * MARGIN 才算有信心
+GROUP_RATIO = 0.62             # 內點數 ≥ 最佳 * 此值的候選視為「同圖不同版」群（≈ margin 1.6）
 TOP_K = 5
+
+# 自動讀卡號定版：卡片左下角「集名/卡號」ROI（相對校正後卡片的比例）
+NUM_ROI = (0.02, 0.90, 0.58, 0.995)   # (x0,y0,x1,y1) 比例
+ROI_MIN_MATCHES = 6            # ROI 比對最少 good matches 才採信自動定版
+ROI_MARGIN = 1.5              # ROI 最佳須 ≥ 次佳 * 此值
 
 _sift: cv2.SIFT | None = None
 _clahe: cv2.CLAHE | None = None
@@ -152,17 +157,78 @@ def _verify(qkp, qdes, q_pts, c: int) -> int:
     return int(mask.sum()) if mask is not None else 0
 
 
-def identify(data: bytes) -> tuple[list[tuple[str, int]], bool, bool]:
+# 卡片左下角「集名/卡號」ROI 比對，用於同圖不同版自動定版 -----------------
+_card_path: dict[str, "Path"] | None = None
+
+
+def _paths() -> dict[str, Path]:
+    global _card_path
+    if _card_path is None:
+        from app.services.image_match import _iter_card_images
+
+        _card_path = {cid: p for cid, p in _iter_card_images()}
+    return _card_path
+
+
+def _roi_feats(bgr: np.ndarray):
+    """取卡片左下角『集名/卡號』ROI 放大後的 SIFT 特徵（小字需放大才有足夠關鍵點）。"""
+    h, w = bgr.shape[:2]
+    x0, y0, x1, y1 = NUM_ROI
+    roi = bgr[int(y0 * h):int(y1 * h), int(x0 * w):int(x1 * w)]
+    if roi.size == 0:
+        return None, None
+    roi = cv2.resize(roi, (roi.shape[1] * 3, roi.shape[0] * 3))
+    return _features(roi)
+
+
+def _disambiguate(qbgr: np.ndarray, group_ids: list[str]) -> str | None:
+    """同圖不同版：比對左下角卡號 ROI，嘗試自動定出正確版本；不確定回 None（交給使用者選）。"""
+    if _bf is None:
+        return None
+    qkp, qdes = _roi_feats(qbgr)
+    if qdes is None or len(qkp) < 6:
+        return None
+    qdes = qdes.astype(np.float32)
+    scores: list[tuple[str, int]] = []
+    for cid in group_ids:
+        p = _paths().get(cid)
+        if p is None:
+            continue
+        img = cv2.imread(str(p))
+        if img is None:
+            continue
+        rkp, rdes = _roi_feats(cv2.resize(img, REF_SIZE))
+        if rdes is None or len(rkp) < 6:
+            scores.append((cid, 0))
+            continue
+        m = _bf.knnMatch(qdes, rdes.astype(np.float32), k=2)
+        good = sum(
+            1 for x in m if len(x) == 2 and x[0].distance < RATIO * x[1].distance
+        )
+        scores.append((cid, good))
+    scores.sort(key=lambda x: x[1], reverse=True)
+    if not scores:
+        return None
+    best_cid, best = scores[0]
+    second = scores[1][1] if len(scores) > 1 else 0
+    if best >= ROI_MIN_MATCHES and best >= max(1, second) * ROI_MARGIN:
+        return best_cid
+    return None
+
+
+def identify(data: bytes) -> tuple[list[tuple[str, int]], bool, str]:
     """辨識畫面中的卡片。
 
-    回傳 (candidates, detected, confident)：
-      candidates: [(card_id, inliers), ...] 依內點數高到低（最多 TOP_K）。
+    回傳 (candidates, detected, status)：
+      candidates: [(card_id, inliers), ...] 依內點數高到低。
       detected:   是否在畫面中偵測到卡片矩形。
-      confident:  最佳結果是否通過信心門檻（內點數 + 領先幅度）。
+      status:     'confident' = candidates[0] 即答案；
+                  'pick'      = 同圖多版需使用者選（candidates 即版本群）；
+                  'none'      = 未達信心（空畫面 / 反光 / 不確定）。
     """
     card = detect_card(data)
     if card is None:
-        return [], False, False
+        return [], False, "none"
     _load()
     assert _flann is not None and _all_kp is not None and _desc_card is not None
 
@@ -171,7 +237,7 @@ def identify(data: bytes) -> tuple[list[tuple[str, int]], bool, bool]:
     )
     qkp, qdes = _features(qbgr)
     if qdes is None or len(qkp) < 8:
-        return [], True, False
+        return [], True, "none"
 
     qdes = qdes.astype(np.float32)
     q_pts = np.float32([k.pt for k in qkp])
@@ -185,17 +251,28 @@ def identify(data: bytes) -> tuple[list[tuple[str, int]], bool, bool]:
         c = int(_desc_card[m[0].trainIdx])
         votes[c] = votes.get(c, 0) + 1
     if not votes:
-        return [], True, False
+        return [], True, "none"
 
-    # 2) 票數前 SHORTLIST 名 → 對單卡做專屬比對 + RANSAC，取真實內點數（信心更可靠）
+    # 2) 票數前 SHORTLIST 名 → 對單卡做專屬比對 + RANSAC，取真實內點數
     shortlist = sorted(votes, key=lambda c: votes[c], reverse=True)[:SHORTLIST]
     scored = [(_card_ids[c], _verify(qkp, qdes, q_pts, c)) for c in shortlist]
     scored.sort(key=lambda x: x[1], reverse=True)
     top = scored[:TOP_K]
     best = top[0][1] if top else 0
-    second = top[1][1] if len(top) > 1 else 0
-    confident = best >= MIN_INLIERS and best >= max(1, second) * MARGIN
-    return top, True, confident
+    if best < MIN_INLIERS:
+        return top, True, "none"
+
+    # 3) 同圖不同版判定：內點數與最佳接近(打平)的高分候選視為同圖版本群
+    group = [(cid, inl) for cid, inl in top if inl >= GROUP_RATIO * best and inl >= MIN_INLIERS]
+    if len(group) <= 1:
+        return top, True, "confident"
+
+    # 4) 同圖多版 → 先嘗試自動讀左下角卡號定版；定不出來才交給使用者選
+    resolved = _disambiguate(qbgr, [cid for cid, _ in group])
+    if resolved is not None:
+        reordered = sorted(top, key=lambda x: (x[0] != resolved, -x[1]))
+        return reordered, True, "confident"
+    return group, True, "pick"
 
 
 if __name__ == "__main__":

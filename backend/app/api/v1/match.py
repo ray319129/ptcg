@@ -103,7 +103,7 @@ async def match_card(
     try:
         import anyio
 
-        pairs, detected, confident = await anyio.to_thread.run_sync(_identify, data)
+        pairs, detected, mstatus = await anyio.to_thread.run_sync(_identify, data)
     except FileNotFoundError:
         raise HTTPException(
             status.HTTP_503_SERVICE_UNAVAILABLE,
@@ -129,12 +129,19 @@ async def match_card(
         return MatchResponse(success=False, detected=detected, message=msg)
 
     top = candidates[0]
-    # confident=幾何內點數達門檻且明顯領先 → 採信並自動回報；否則由連續掃描下一幀再試
-    if confident:
+    if mstatus == "confident":
+        # 幾何內點數達門檻且明顯領先（或同圖多版已自動讀卡號定版）→ 採信
         return MatchResponse(
             success=True, best=top, candidates=candidates,
             detected=detected, message="命中",
         )
+    if mstatus == "pick":
+        # 同圖不同版且讀不出卡號 → 交給使用者選版本
+        return MatchResponse(
+            success=False, needs_pick=True, best=top, candidates=candidates,
+            detected=detected, message="這張圖有多個版本，請選擇正確版本",
+        )
+    # none：信心不足，由連續掃描下一幀再試
     return MatchResponse(
         success=False, candidates=candidates, detected=detected,
         message="信心不足，請重拍或從候選確認",
@@ -146,7 +153,7 @@ def _conf(inliers: int) -> float:
     return min(inliers / 40.0, 1.0)
 
 
-def _identify(data: bytes) -> tuple[list[tuple[str, float]], bool, bool]:
-    scored, detected, confident = sift_match.identify(data)
+def _identify(data: bytes) -> tuple[list[tuple[str, float]], bool, str]:
+    scored, detected, mstatus = sift_match.identify(data)
     pairs = [(cid, _conf(inl)) for cid, inl in scored]
-    return pairs, detected, confident
+    return pairs, detected, mstatus

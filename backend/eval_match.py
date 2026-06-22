@@ -44,7 +44,8 @@ def main() -> int:
             print(f"{fn:16} 檔案不存在")
             continue
         t0 = time.time()
-        cand, detected, confident = sm.identify(p.read_bytes())
+        cand, detected, mstatus = sm.identify(p.read_bytes())
+        confident = mstatus == "confident"
         dt = time.time() - t0
         if not detected:
             print(f"{fn:16} {'F':4} {'(未偵測到)':16} {'-':5} {'-':5} {'-':5} {dt:4.1f} 漏抓")
@@ -75,10 +76,10 @@ def main() -> int:
             p = SAMPLES / r["filename"].strip()
             if not p.exists():
                 continue
-            cand, detected, confident = sm.identify(p.read_bytes())
-            if confident:
+            cand, detected, mstatus = sm.identify(p.read_bytes())
+            if mstatus in ("confident", "pick"):
                 fp += 1
-                print(f"空畫面 {r['filename']} 誤判為 {cand[0]}")
+                print(f"空畫面 {r['filename']} 誤觸發({mstatus}) {cand[0] if cand else ''}")
         print(f"空畫面誤判(假陽性): {fp}/{len(none_rows)}")
     return 0
 

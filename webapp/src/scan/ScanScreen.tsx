@@ -130,8 +130,9 @@ export function ScanScreen({ userId, onClose }: Props) {
       abortRef.current = ac;
       try {
         const resp = await matchCard(blob, userId, priceLang, ac.signal);
-        // 只在後端高信心（偵測到卡片且相似度過門檻）才自動跳結果，避免空畫面/反光誤判。
-        // 信心不足或沒偵測到卡 → 不記簽章，下個間隔再試（閃卡每幀反光不同，多試幾次易中）。
+        // success：高信心 → 直接跳結果。
+        // needs_pick：同圖多版且讀不出卡號 → 跳結果並自動展開版本清單讓使用者選。
+        // 其餘（信心不足/沒偵測到卡）→ 不記簽章，下個間隔再試（閃卡反光每幀不同）。
         if (resp.success && resp.best) {
           const pick = resp.best;
           matchedSigRef.current = sig;
@@ -141,6 +142,13 @@ export function ScanScreen({ userId, onClose }: Props) {
           setShowCandidates(false);
           triggerReward(pick.rarity);
           setPhase("scanning"); // 畫面不停，但 busyRef 仍鎖住（結果顯示中）
+        } else if (resp.needs_pick && resp.best) {
+          matchedSigRef.current = sig;
+          setResult(resp);
+          setSelected(resp.best); // 預選最佳猜測，使用者可改
+          setQty(1);
+          setShowCandidates(true); // 自動展開版本清單
+          setPhase("scanning");
         } else {
           busyRef.current = false;
           setPhase("scanning");
@@ -335,7 +343,11 @@ export function ScanScreen({ userId, onClose }: Props) {
       {/* 候選清單 */}
       {result && showCandidates && (
         <div className="suggest-drawer">
-          <div className="suggest-title">其他可能（相似度排序）</div>
+          <div className="suggest-title">
+            {result.needs_pick
+              ? "🔀 這張圖有多個版本，請選擇正確的卡號/系列"
+              : "其他可能（相似度排序）"}
+          </div>
           <div className="suggest-list">
             {result.candidates.map((c) => (
               <button

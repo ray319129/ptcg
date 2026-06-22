@@ -249,6 +249,7 @@ export interface MatchResponse {
   best: MatchCandidate | null;
   candidates: MatchCandidate[];
   detected: boolean;
+  needs_pick: boolean;
   message: string;
 }
 /** 上傳拍到的卡片影像，回傳最相近的卡（及候選）。lang 指定卡價語言版本。 */
