@@ -10,10 +10,20 @@
 
 $ErrorActionPreference = "Continue"
 $root = $PSScriptRoot
+
+# 單例：避免多個看門狗實例互打（重複啟動時直接結束新的）。
+$mutex = New-Object System.Threading.Mutex($false, "Global\PTCG-AutoStart-Watchdog")
+if (-not $mutex.WaitOne(0)) {
+  Write-Host "已有一個 start-dev 看門狗在執行，結束本實例。" -ForegroundColor DarkYellow
+  return
+}
 $ts = "C:\Program Files\Tailscale\tailscale.exe"
 $FUNNEL_URL = "https://ray.tail0a17b9.ts.net"
 $env:DATABASE_URL = "postgresql+asyncpg://ptcg:0907@127.0.0.1:55432/ptcg"
 $env:REDIS_URL = "redis://:0907@127.0.0.1:6380/0"
+# uvicorn 等套件裝在使用者 site-packages；排程工作的精簡環境不一定會載入，
+# 明確加進 PYTHONPATH，確保看門狗重啟後端時一定找得到。
+$env:PYTHONPATH = "C:\Users\Ray\AppData\Roaming\Python\Python314\site-packages"
 
 function Test-Port([int]$port) {
   try {
