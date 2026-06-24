@@ -1,81 +1,93 @@
-# 一鍵啟動本機開發環境（Windows PowerShell）。
-# 用法： 在專案根目錄執行  ./start-dev.ps1
+﻿# 一鍵啟動 + 看門狗（固定網址版，Tailscale Funnel）。
+# 用法：在專案根目錄執行  ./start-dev.ps1   （視窗保持開啟＝持續自動監控／重啟）
 #
-# 連線設定（避開主機既有的 PostgreSQL 17/18 與 Redis，故用非預設埠）：
-#   PostgreSQL : 127.0.0.1:55432  (docker)  user=ptcg pass=0907 db=ptcg
-#   Redis      : 127.0.0.1:6380   (docker)  pass=0907
-#   後端 API   : http://127.0.0.1:8000   (/docs 有 Swagger)
-#   前端 PWA   : http://127.0.0.1:5173
+#   PostgreSQL : 127.0.0.1:55432 (docker)  user=ptcg pass=0907 db=ptcg
+#   Redis      : 127.0.0.1:6380  (docker)  pass=0907
+#   後端 API   : http://127.0.0.1:8000
+#   前端 PWA   : http://127.0.0.1:4173 （正式 build + preview）
+#   固定網址   : https://ray.tail0a17b9.ts.net   ← 永不改變（Tailscale Funnel → :4173）
+#   手機入口   : https://ray319129.github.io/ptcg/ （docs/url.txt 永久指向上面網址）
 
-$ErrorActionPreference = "Stop"
+$ErrorActionPreference = "Continue"
 $root = $PSScriptRoot
-
-Write-Host "[1/4] 啟動 Docker 基礎設施 (Postgres + Redis)..." -ForegroundColor Cyan
-docker compose -f "$root/docker-compose.yml" up -d
-
-Write-Host "[2/4] 等待資料庫健康檢查..." -ForegroundColor Cyan
-for ($i = 0; $i -lt 24; $i++) {
-  $s = (docker inspect --format '{{.State.Health.Status}}' ptcg-db 2>$null)
-  if ($s -eq "healthy") { Write-Host "  DB healthy"; break }
-  Start-Sleep -Seconds 5
-}
-
-# 後端連線環境變數
+$ts = "C:\Program Files\Tailscale\tailscale.exe"
+$FUNNEL_URL = "https://ray.tail0a17b9.ts.net"
 $env:DATABASE_URL = "postgresql+asyncpg://ptcg:0907@127.0.0.1:55432/ptcg"
 $env:REDIS_URL = "redis://:0907@127.0.0.1:6380/0"
 
-Write-Host "[3/4] 啟動後端 FastAPI (:8000)..." -ForegroundColor Cyan
-Start-Process -WindowStyle Minimized powershell -ArgumentList @(
-  "-NoExit", "-Command",
-  "`$env:DATABASE_URL='$($env:DATABASE_URL)'; `$env:REDIS_URL='$($env:REDIS_URL)'; " +
-  "cd '$root/backend'; python -m uvicorn app.main:app --host 127.0.0.1 --port 8000"
-)
+function Test-Port([int]$port) {
+  try {
+    $c = New-Object Net.Sockets.TcpClient
+    $c.Connect("127.0.0.1", $port); $c.Close(); return $true
+  } catch { return $false }
+}
 
-# 前端：OCR 的 wasm 在 dev 模式無法載入（Vite 會轉換 ORT 動態 import），
-# 故用「build + 靜態 preview」服務正式檔。改程式碼後需重跑本腳本（或 npm run build）。
-Write-Host "[4/5] 建置並啟動前端正式預覽 (:4173)..." -ForegroundColor Cyan
-Push-Location "$root/webapp"; npm run build; Pop-Location
-Start-Process -WindowStyle Minimized powershell -ArgumentList @(
-  "-NoExit", "-Command", "cd '$root/webapp'; npx vite preview --port 4173 --host 0.0.0.0"
-)
+function Test-DbHealthy {
+  return ((docker inspect --format '{{.State.Health.Status}}' ptcg-db 2>$null) -eq 'healthy')
+}
 
-Write-Host "[5/5] 啟動 Cloudflare Tunnel 並發布固定網址..." -ForegroundColor Cyan
-# quick tunnel 每次網址會變；啟動後抓出網址 → 寫入 docs/url.txt → push 到 GitHub，
-# 讓固定頁面 https://ray319129.github.io/ptcg/ 永遠跳轉到當前網址。
-$cfLog = Join-Path $env:TEMP "ptcg_cf.log"
-if (Test-Path $cfLog) { Remove-Item $cfLog -Force }
-Start-Process -WindowStyle Minimized powershell -ArgumentList @(
-  "-NoExit", "-Command",
-  "& '$root/tools/cloudflared.exe' tunnel --url http://localhost:4173 --no-autoupdate *> '$cfLog'"
-)
-
-# 等待並擷取網址
-$tunnelUrl = $null
-for ($i = 0; $i -lt 30; $i++) {
-  Start-Sleep -Seconds 2
-  if (Test-Path $cfLog) {
-    $m = Select-String -Path $cfLog -Pattern "https://[a-z0-9-]+\.trycloudflare\.com" -ErrorAction SilentlyContinue | Select-Object -First 1
-    if ($m) { $tunnelUrl = $m.Matches[0].Value; break }
+function Ensure-Docker {
+  docker info *> $null
+  if ($LASTEXITCODE -ne 0) {
+    $dd = "$env:ProgramFiles\Docker\Docker\Docker Desktop.exe"
+    if (Test-Path $dd) {
+      Write-Host "  Docker 引擎未啟動 → 啟動 Docker Desktop…" -ForegroundColor Yellow
+      Start-Process $dd
+      for ($i = 0; $i -lt 30; $i++) { Start-Sleep 4; docker info *> $null; if ($LASTEXITCODE -eq 0) { break } }
+    }
+  }
+  if (-not (Test-DbHealthy)) {
+    docker compose -f "$root/docker-compose.yml" up -d *> $null
   }
 }
 
-if ($tunnelUrl) {
-  Set-Content -Path "$root/docs/url.txt" -Value $tunnelUrl -Encoding utf8 -NoNewline
-  Write-Host "   目前網址: $tunnelUrl" -ForegroundColor Yellow
-  # 推到 GitHub（更新固定頁面）。失敗不中斷。
-  Push-Location $root
-  try {
-    git add docs/url.txt 2>$null
-    git commit -m "update tunnel url" 2>$null
-    git push 2>$null
-    Write-Host "   已更新固定頁面 https://ray319129.github.io/ptcg/" -ForegroundColor Green
-  } catch { Write-Host "   （push 失敗，請確認 git 已設定認證）" -ForegroundColor DarkYellow }
-  Pop-Location
-} else {
-  Write-Host "   （未取得 tunnel 網址，請看最小化的 cloudflared 視窗）" -ForegroundColor DarkYellow
+function Ensure-Backend {
+  if (Test-Port 8000) { return }
+  Write-Host "  (重)啟動後端 :8000" -ForegroundColor Yellow
+  Start-Process -FilePath "C:\Python314\python.exe" `
+    -ArgumentList "-m", "uvicorn", "app.main:app", "--host", "127.0.0.1", "--port", "8000", "--log-level", "warning" `
+    -WorkingDirectory "$root/backend" `
+    -RedirectStandardOutput "$root/backend/uvicorn.out.log" `
+    -RedirectStandardError "$root/backend/uvicorn.err.log" -WindowStyle Hidden
 }
 
+function Ensure-Preview {
+  if (Test-Port 4173) { return }
+  Write-Host "  (重)啟動前端預覽 :4173" -ForegroundColor Yellow
+  Start-Process -FilePath "cmd.exe" `
+    -ArgumentList "/c", "npx vite preview --port 4173 --host 0.0.0.0 > preview.out.log 2>&1" `
+    -WorkingDirectory "$root/webapp" -WindowStyle Hidden
+}
+
+function Ensure-Funnel {
+  $st = (& $ts funnel status 2>&1 | Out-String)
+  if ($st -notmatch "4173") {
+    Write-Host "  (重)啟動 Tailscale Funnel → :4173" -ForegroundColor Yellow
+    & $ts funnel --bg 4173 *> $null
+  }
+}
+
+Write-Host "[1/4] Docker (Postgres + Redis)…" -ForegroundColor Cyan
+Ensure-Docker
+for ($i = 0; $i -lt 24; $i++) { if (Test-DbHealthy) { Write-Host "  DB healthy"; break }; Start-Sleep 5 }
+
+Write-Host "[2/4] 建置前端正式檔…" -ForegroundColor Cyan
+Push-Location "$root/webapp"; npm run build; Pop-Location
+
+Write-Host "[3/4] 啟動服務（後端 / 預覽 / Funnel）…" -ForegroundColor Cyan
+Ensure-Backend; Ensure-Preview; Ensure-Funnel
+
 Write-Host ""
-Write-Host "✅ 已啟動：" -ForegroundColor Green
-Write-Host "   電腦   前端 http://127.0.0.1:4173 ｜ 後端 http://127.0.0.1:8000/docs"
-Write-Host "   手機   固定入口 https://ray319129.github.io/ptcg/ （永遠跳轉到當前網址）"
+Write-Host "✅ 已啟動。固定網址：$FUNNEL_URL" -ForegroundColor Green
+Write-Host "   手機固定入口：https://ray319129.github.io/ptcg/" -ForegroundColor Green
+Write-Host "   電腦：前端 http://127.0.0.1:4173 ｜ 後端 http://127.0.0.1:8000/docs"
+Write-Host "   看門狗運行中：每 15 秒檢查，任何服務掛掉自動重啟。" -ForegroundColor DarkGray
+Write-Host "   （關閉此視窗只會停止『自動監控』，背景服務仍在；要全停請關各服務或登出。）" -ForegroundColor DarkGray
+
+while ($true) {
+  Start-Sleep -Seconds 15
+  Ensure-Docker
+  Ensure-Backend
+  Ensure-Preview
+  Ensure-Funnel
+}
